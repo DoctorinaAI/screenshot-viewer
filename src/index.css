@@ -1,0 +1,124 @@
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+/* Dark variant: enabled by class="dark" on <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Theme tokens — light first, dark overrides below.
+ * Use semantic names everywhere (`bg-background`, `text-foreground`, `bg-status-failed`).
+ * Add new tokens here instead of reaching for raw hex values in components.
+ */
+
+:root {
+  --background: oklch(99% 0 0);
+  --foreground: oklch(15% 0 0);
+
+  --card: oklch(100% 0 0);
+  --card-foreground: oklch(15% 0 0);
+
+  --primary: oklch(55% 0.18 265);
+  --primary-foreground: oklch(98% 0 0);
+
+  --secondary: oklch(95% 0.01 265);
+  --secondary-foreground: oklch(20% 0 0);
+
+  --muted: oklch(95% 0.01 265);
+  --muted-foreground: oklch(50% 0 0);
+
+  --accent: oklch(95% 0.01 265);
+  --accent-foreground: oklch(20% 0 0);
+
+  --destructive: oklch(58% 0.21 25);
+  --destructive-foreground: oklch(98% 0 0);
+
+  --border: oklch(90% 0.01 265);
+  --input: oklch(90% 0.01 265);
+  --ring: oklch(55% 0.18 265);
+
+  --status-ok: oklch(65% 0.16 145);
+  --status-ok-foreground: oklch(98% 0 0);
+  --status-warning: oklch(78% 0.15 75);
+  --status-warning-foreground: oklch(20% 0 0);
+  --status-failed: oklch(58% 0.21 25);
+  --status-failed-foreground: oklch(98% 0 0);
+
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: oklch(15% 0 0);
+  --foreground: oklch(98% 0 0);
+
+  --card: oklch(18% 0 0);
+  --card-foreground: oklch(98% 0 0);
+
+  --primary: oklch(70% 0.16 265);
+  --primary-foreground: oklch(15% 0 0);
+
+  --secondary: oklch(25% 0.01 265);
+  --secondary-foreground: oklch(98% 0 0);
+
+  --muted: oklch(25% 0.01 265);
+  --muted-foreground: oklch(70% 0 0);
+
+  --accent: oklch(25% 0.01 265);
+  --accent-foreground: oklch(98% 0 0);
+
+  --destructive: oklch(50% 0.21 25);
+  --destructive-foreground: oklch(98% 0 0);
+
+  --border: oklch(25% 0.01 265);
+  --input: oklch(25% 0.01 265);
+  --ring: oklch(70% 0.16 265);
+
+  --status-ok: oklch(60% 0.16 145);
+  --status-ok-foreground: oklch(98% 0 0);
+  --status-warning: oklch(72% 0.15 75);
+  --status-warning-foreground: oklch(15% 0 0);
+  --status-failed: oklch(60% 0.21 25);
+  --status-failed-foreground: oklch(98% 0 0);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-status-ok: var(--status-ok);
+  --color-status-ok-foreground: var(--status-ok-foreground);
+  --color-status-warning: var(--status-warning);
+  --color-status-warning-foreground: var(--status-warning-foreground);
+  --color-status-failed: var(--status-failed);
+  --color-status-failed-foreground: var(--status-failed-foreground);
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+@layer base {
+  html {
+    color-scheme: light dark;
+  }
+  body {
+    min-height: 100dvh;
+    font-family:
+      ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+}
