@@ -11,11 +11,13 @@ service firebase.storage {
     function isDoctorinaUser() {
       return request.auth != null
         && request.auth.token.email_verified == true
-        && request.auth.token.email.matches('.*@doctorina[.]com$');
+        && request.auth.token.email.matches('^[^@]+@doctorina[.]com$')
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
     }
 
-    match /runs/{path=**} {
-      allow read: if isDoctorinaUser();
+    match /runs/{runId}/{file} {
+      allow read: if isDoctorinaUser()
+        && (file == 'manifest.json' || file == 'images.zip');
       allow write: if false;
     }
 

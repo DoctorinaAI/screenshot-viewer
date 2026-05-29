@@ -1,6 +1,6 @@
 # Screenshot viewer — Firebase infrastructure
 
-Firebase project: **`doctorina-test`** (region `europe-west1`).
+Firebase project: **`doctorina-test`**. Firestore in `europe-west1`; Cloud Storage in `us-east1` (free-tier).
 
 Stores Flutter integration-test screenshot artifacts and serves the viewer SPA. See [DoctorinaAI/doctorina#3695](https://github.com/DoctorinaAI/doctorina/issues/3695) for the full design.
 
