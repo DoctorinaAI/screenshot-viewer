@@ -5,7 +5,9 @@
 
 import {
   collection,
+  doc,
   limit as fLimit,
+  getDoc,
   getDocs,
   orderBy,
   type QueryConstraint,
@@ -59,6 +61,12 @@ export async function queryRuns(opts: {
     lastDoc: docs.length > 0 ? docs[docs.length - 1] : null,
     hasMore: snap.docs.length > pageSize,
   };
+}
+
+export async function getRun(runId: string): Promise<RunDoc | null> {
+  const snap = await getDoc(doc(firestore(), "runs", runId));
+  if (!snap.exists()) return null;
+  return RunDocSchema.parse(snap.data());
 }
 
 function filterToConstraints(filter: RunsFilter): QueryConstraint[] {
