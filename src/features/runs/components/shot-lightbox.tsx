@@ -1,21 +1,21 @@
 import { createEffect, createSignal, onCleanup, Show } from "solid-js";
 import type { Shot } from "@/features/runs/manifest-helpers";
+import type { ManifestIndex } from "@/features/runs/run-store";
 import type { ImagesArchive } from "@/shared/api/storage";
-import type { Manifest } from "@/shared/lib/schema";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/shared/ui/dialog";
 
 interface Props {
-  manifest: Manifest;
+  index: ManifestIndex | null;
   archive: ImagesArchive | null;
   shots: Shot[];
-  index: number | null;
+  shotIndex: number | null;
   onChangeIndex: (next: number | null) => void;
 }
 
 function ShotLightbox(props: Props) {
-  const open = () => props.index !== null;
+  const open = () => props.shotIndex !== null;
   // Side-by-side diff state: indices into props.shots that the user pinned
   // via the `1` and `2` keys. `null` means that pane isn't pinned yet.
   const [leftIndex, setLeftIndex] = createSignal<number | null>(null);
@@ -28,20 +28,23 @@ function ShotLightbox(props: Props) {
     return props.archive?.urls.get(shot.imageHash) ?? null;
   };
 
-  const current = () => shotAt(props.index);
+  const current = () => shotAt(props.shotIndex);
   const url = () => urlFor(current());
 
   const meta = (shot: Shot | null) => {
     if (!shot) return null;
-    const c = props.manifest.cases.find((x) => x.id === shot.caseId);
-    const layout = props.manifest.layouts.find((x) => x.id === shot.layoutId);
-    const lang = props.manifest.languages.find((x) => x.code === shot.languageCode);
-    return { shot, case: c, layout, lang };
+    const idx = props.index;
+    return {
+      shot,
+      case: idx?.cases.get(shot.caseId),
+      layout: idx?.layouts.get(shot.layoutId),
+      lang: idx?.languages.get(shot.languageCode),
+    };
   };
 
   function step(delta: number) {
-    if (props.index === null) return;
-    const next = props.index + delta;
+    if (props.shotIndex === null) return;
+    const next = props.shotIndex + delta;
     if (next < 0 || next >= props.shots.length) return;
     props.onChangeIndex(next);
   }
@@ -56,8 +59,8 @@ function ShotLightbox(props: Props) {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") step(-1);
       else if (e.key === "ArrowRight") step(+1);
-      else if (e.key === "1" && props.index !== null) setLeftIndex(props.index);
-      else if (e.key === "2" && props.index !== null) setRightIndex(props.index);
+      else if (e.key === "1" && props.shotIndex !== null) setLeftIndex(props.shotIndex);
+      else if (e.key === "2" && props.shotIndex !== null) setRightIndex(props.shotIndex);
       else if (e.key === "0" || e.key === "Backspace") clearDiff();
     };
     window.addEventListener("keydown", handler);
@@ -91,12 +94,12 @@ function ShotLightbox(props: Props) {
                 <Badge variant="outline" class="text-[11px]">
                   {m().shot.platform}
                 </Badge>
-                <Show when={leftIndex() !== null && leftIndex() === props.index}>
+                <Show when={leftIndex() !== null && leftIndex() === props.shotIndex}>
                   <Badge variant="ok" class="text-[11px]">
                     pinned 1
                   </Badge>
                 </Show>
-                <Show when={rightIndex() !== null && rightIndex() === props.index}>
+                <Show when={rightIndex() !== null && rightIndex() === props.shotIndex}>
                   <Badge variant="warning" class="text-[11px]">
                     pinned 2
                   </Badge>
@@ -125,13 +128,13 @@ function ShotLightbox(props: Props) {
                   right={shotAt(rightIndex())}
                   leftUrl={urlFor(shotAt(leftIndex()))}
                   rightUrl={urlFor(shotAt(rightIndex()))}
-                  manifest={props.manifest}
+                  index={props.index}
                 />
               </Show>
 
               <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
                 <span>
-                  {(props.index ?? 0) + 1} / {props.shots.length}
+                  {(props.shotIndex ?? 0) + 1} / {props.shots.length}
                   <Show when={leftIndex() !== null || rightIndex() !== null}>
                     <span class="ml-3 font-mono">
                       diff: {leftIndex() !== null ? `#${(leftIndex() ?? 0) + 1}` : "—"} /{" "}
@@ -155,7 +158,7 @@ function ShotLightbox(props: Props) {
                     type="button"
                     variant="outline"
                     size="sm"
-                    disabled={props.index === 0}
+                    disabled={props.shotIndex === 0}
                     onClick={() => step(-1)}
                   >
                     Previous
@@ -164,7 +167,7 @@ function ShotLightbox(props: Props) {
                     type="button"
                     variant="outline"
                     size="sm"
-                    disabled={props.index === props.shots.length - 1}
+                    disabled={props.shotIndex === props.shots.length - 1}
                     onClick={() => step(+1)}
                   >
                     Next
@@ -184,7 +187,7 @@ interface DiffPanesProps {
   right: Shot | null;
   leftUrl: string | null;
   rightUrl: string | null;
-  manifest: Manifest;
+  index: ManifestIndex | null;
 }
 
 function DiffPanes(props: DiffPanesProps) {
@@ -195,14 +198,14 @@ function DiffPanes(props: DiffPanesProps) {
         badgeVariant="ok"
         shot={props.left}
         url={props.leftUrl}
-        manifest={props.manifest}
+        index={props.index}
       />
       <DiffPane
         label="2"
         badgeVariant="warning"
         shot={props.right}
         url={props.rightUrl}
-        manifest={props.manifest}
+        index={props.index}
       />
     </div>
   );
@@ -213,16 +216,12 @@ interface DiffPaneProps {
   badgeVariant: "ok" | "warning";
   shot: Shot | null;
   url: string | null;
-  manifest: Manifest;
+  index: ManifestIndex | null;
 }
 
 function DiffPane(props: DiffPaneProps) {
-  const lang = () =>
-    props.shot
-      ? props.manifest.languages.find((x) => x.code === props.shot?.languageCode)
-      : undefined;
-  const layout = () =>
-    props.shot ? props.manifest.layouts.find((x) => x.id === props.shot?.layoutId) : undefined;
+  const lang = () => (props.shot ? props.index?.languages.get(props.shot.languageCode) : undefined);
+  const layout = () => (props.shot ? props.index?.layouts.get(props.shot.layoutId) : undefined);
 
   return (
     <figure class="grid gap-2">

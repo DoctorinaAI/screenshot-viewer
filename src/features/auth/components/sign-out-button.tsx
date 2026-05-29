@@ -5,6 +5,7 @@ import { Button } from "@/shared/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -40,12 +41,14 @@ function SignOutMenu() {
             />
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuLabel>
-              <div class="grid gap-0.5">
-                <span class="font-medium">{user().displayName ?? "Doctorina engineer"}</span>
-                <span class="text-xs text-muted-foreground">{user().email}</span>
-              </div>
-            </DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>
+                <div class="grid gap-0.5">
+                  <span class="font-medium">{user().displayName ?? "Doctorina engineer"}</span>
+                  <span class="text-xs text-muted-foreground">{user().email}</span>
+                </div>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onSelect={() => {

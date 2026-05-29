@@ -1,5 +1,5 @@
 import type { JSX, ParentProps } from "solid-js";
-import { createSignal } from "solid-js";
+import { createSignal, For } from "solid-js";
 import { Avatar } from "@/shared/ui/avatar";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -24,6 +24,7 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -107,14 +108,16 @@ function UiKitPage() {
           page to spot regressions after token or component changes.
         </p>
         <nav class="flex flex-wrap gap-2 pt-2 text-xs">
-          {sections.map((s) => (
-            <a
-              href={`#${s.id}`}
-              class="rounded-md border bg-muted/40 px-2 py-1 text-muted-foreground hover:text-foreground"
-            >
-              {s.title}
-            </a>
-          ))}
+          <For each={sections}>
+            {(s) => (
+              <a
+                href={`#${s.id}`}
+                class="rounded-md border bg-muted/40 px-2 py-1 text-muted-foreground hover:text-foreground"
+              >
+                {s.title}
+              </a>
+            )}
+          </For>
         </nav>
       </header>
 
@@ -275,13 +278,15 @@ function UiKitPage() {
             Actions
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuLabel>Run</DropdownMenuLabel>
-            <DropdownMenuItem>
-              Open
-              <DropdownMenuShortcut>↵</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuItem>Copy run ID</DropdownMenuItem>
-            <DropdownMenuItem>Open in CI</DropdownMenuItem>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Run</DropdownMenuLabel>
+              <DropdownMenuItem>
+                Open
+                <DropdownMenuShortcut>↵</DropdownMenuShortcut>
+              </DropdownMenuItem>
+              <DropdownMenuItem>Copy run ID</DropdownMenuItem>
+              <DropdownMenuItem>Open in CI</DropdownMenuItem>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem disabled>Delete (CI-only)</DropdownMenuItem>
           </DropdownMenuContent>

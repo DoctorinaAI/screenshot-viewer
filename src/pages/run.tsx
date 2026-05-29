@@ -12,7 +12,9 @@ import { Skeleton } from "@/shared/ui/skeleton";
 
 function RunPage() {
   const params = useParams<{ runId: string }>();
-  const store = createRunStore(params.runId);
+  // Pass an accessor so the store refetches when @solidjs/router updates the
+  // param without remounting the page (same route pattern, different runId).
+  const store = createRunStore(() => params.runId);
 
   const [lightboxIndex, setLightboxIndex] = createSignal<number | null>(null);
 
@@ -68,7 +70,7 @@ function RunPage() {
             </aside>
             <div>
               <ShotGrid
-                manifest={manifest()}
+                index={store.manifestIndex()}
                 groups={store.groups()}
                 archive={store.state().archive}
                 archiveLoading={store.state().archiveLoading}
@@ -80,10 +82,10 @@ function RunPage() {
               />
             </div>
             <ShotLightbox
-              manifest={manifest()}
+              index={store.manifestIndex()}
               archive={store.state().archive}
               shots={flatShots()}
-              index={lightboxIndex()}
+              shotIndex={lightboxIndex()}
               onChangeIndex={setLightboxIndex}
             />
           </div>
