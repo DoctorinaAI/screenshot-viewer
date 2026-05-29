@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/features/auth/components/protected-route";
 const HomePage = lazy(() => import("@/pages/home"));
 const UiKitPage = lazy(() => import("@/pages/ui-kit"));
 const LoginPage = lazy(() => import("@/pages/login"));
+const RunPage = lazy(() => import("@/pages/run"));
 
 function AppRouter() {
   return (
@@ -15,6 +16,7 @@ function AppRouter() {
       <Route path="/login" component={LoginPage} />
       <Route path="/" component={Guard(HomePage)} />
       <Route path="/ui-kit" component={Guard(UiKitPage)} />
+      <Route path="/runs/:runId" component={Guard(RunPage)} />
       <Route path="*" component={NotFoundPage} />
     </Router>
   );
