@@ -1,0 +1,28 @@
+rules_version = '2';
+
+// Screenshot viewer Cloud Storage rules.
+//
+// Reads of run artifacts (manifest.json + images.zip) require Firebase Auth
+// with a verified @doctorina.com email. CI uploads bypass rules via the
+// Admin SDK / service account, so client writes are denied unconditionally.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isDoctorinaUser() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.matches('^[^@]+@doctorina[.]com$')
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+
+    match /runs/{runId}/{file} {
+      allow read: if isDoctorinaUser()
+        && (file == 'manifest.json' || file == 'images.zip');
+      allow write: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

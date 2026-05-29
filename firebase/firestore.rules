@@ -1,0 +1,27 @@
+rules_version = '2';
+
+// Screenshot viewer Firestore rules.
+//
+// Reads are gated behind Firebase Auth + verified @doctorina.com email.
+// Writes are CI-only via the service account, which uses the Admin SDK and
+// bypasses rules entirely — so client writes are denied unconditionally.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isDoctorinaUser() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.matches('^[^@]+@doctorina[.]com$')
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+
+    match /runs/{runId} {
+      allow read: if isDoctorinaUser();
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

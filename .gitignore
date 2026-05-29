@@ -111,3 +111,28 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Firebase CLI
+.firebase/
+firebase-debug.log*
+firebase-debug.*.log*
+.runtimeconfig.json
+firestore-debug.log*
+ui-debug.log*
+
+# Service account keys — never commit
+**/serviceAccount*.json
+**/*-sa-key*.json
+**/*service-account*.json
+
+# Local env overrides
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
