@@ -3,7 +3,7 @@
 
 // en-GB gives the day-first ordering (29 May 2026, 14:30) that matches the
 // team's expectation. Easy to swap if Doctorina goes multi-locale later.
-const DEFAULT_LOCALE = "en-GB";
+export const DEFAULT_LOCALE = "en-GB";
 
 function isSameDay(a: Date, b: Date): boolean {
   return (

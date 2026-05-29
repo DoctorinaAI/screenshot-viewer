@@ -1,9 +1,9 @@
 import { A } from "@solidjs/router";
 import { For, Show } from "solid-js";
 import { formatFullDateTime, formatRelativeTime } from "@/shared/lib/relative-time";
-import { type RunDoc, RunStatus } from "@/shared/lib/schema";
+import type { RunDoc } from "@/shared/lib/schema";
 import { Avatar } from "@/shared/ui/avatar";
-import { Badge, type BadgeProps } from "@/shared/ui/badge";
+import { Badge } from "@/shared/ui/badge";
 import {
   Card,
   CardContent,
@@ -13,25 +13,7 @@ import {
   CardTitle,
 } from "@/shared/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
-
-function statusBadge(status: RunDoc["workflow"]["status"]): BadgeProps["variant"] {
-  switch (status) {
-    case RunStatus.Success:
-      return "ok";
-    case RunStatus.Partial:
-      return "warning";
-    case RunStatus.Failed:
-      return "failed";
-  }
-}
-
-function authorInitials(run: RunDoc): string {
-  const name = run.git.author.name || run.git.author.email;
-  const parts = name.split(/[\s.@]+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[1][0]).toUpperCase();
-}
+import { authorInitials, runStatusBadge, Stat } from "./run-stat";
 
 const LANGUAGES_PREVIEW = 3;
 
@@ -47,7 +29,7 @@ function RunCard(props: RunCardProps) {
       <Card interactive class="h-full">
         <CardHeader class="gap-3">
           <div class="flex flex-wrap items-center gap-2">
-            <Badge variant={statusBadge(props.run.workflow.status)}>
+            <Badge variant={runStatusBadge(props.run.workflow.status)}>
               {props.run.workflow.status}
             </Badge>
             <Badge variant="outline" class="font-mono text-[11px] uppercase tracking-wide">
@@ -84,12 +66,13 @@ function RunCard(props: RunCardProps) {
             </Show>
           </div>
           <dl class="grid grid-cols-3 gap-3 text-sm">
-            <Stat label="Shots" value={props.run.stats.totalShots} />
-            <Stat label="Unique" value={props.run.stats.uniqueImages} />
+            <Stat label="Shots" value={props.run.stats.totalShots} size="sm" />
+            <Stat label="Unique" value={props.run.stats.uniqueImages} size="sm" />
             <Stat
               label="Failed"
               value={props.run.stats.failedCount}
               highlight={props.run.stats.failedCount > 0}
+              size="sm"
             />
           </dl>
         </CardContent>
@@ -98,7 +81,7 @@ function RunCard(props: RunCardProps) {
             <Avatar
               size="sm"
               src={props.run.git.author.avatarUrl ?? null}
-              fallback={authorInitials(props.run)}
+              fallback={authorInitials(props.run.git.author.name, props.run.git.author.email)}
             />
             <span class="truncate">{props.run.git.author.name}</span>
           </div>
@@ -111,21 +94,6 @@ function RunCard(props: RunCardProps) {
         </CardFooter>
       </Card>
     </A>
-  );
-}
-
-function Stat(props: { label: string; value: number; highlight?: boolean }) {
-  return (
-    <div class="grid gap-0.5">
-      <dt class="text-[10px] uppercase tracking-wide text-muted-foreground">{props.label}</dt>
-      <dd
-        class={`text-base font-semibold tabular-nums ${
-          props.highlight ? "text-status-failed" : "text-foreground"
-        }`}
-      >
-        {props.value.toLocaleString("en-US")}
-      </dd>
-    </div>
   );
 }
 

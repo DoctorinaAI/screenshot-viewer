@@ -1,28 +1,10 @@
 import { Show } from "solid-js";
 import { formatFullDateTime, formatRelativeTime } from "@/shared/lib/relative-time";
-import { type RunDoc, RunStatus } from "@/shared/lib/schema";
+import type { RunDoc } from "@/shared/lib/schema";
 import { Avatar } from "@/shared/ui/avatar";
-import { Badge, type BadgeProps } from "@/shared/ui/badge";
+import { Badge } from "@/shared/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
-
-function statusBadge(status: RunDoc["workflow"]["status"]): BadgeProps["variant"] {
-  switch (status) {
-    case RunStatus.Success:
-      return "ok";
-    case RunStatus.Partial:
-      return "warning";
-    case RunStatus.Failed:
-      return "failed";
-  }
-}
-
-function authorInitials(name: string, email: string): string {
-  const source = name || email;
-  const parts = source.split(/[\s.@]+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[1][0]).toUpperCase();
-}
+import { authorInitials, runStatusBadge, Stat } from "./run-stat";
 
 interface RunHeaderProps {
   run: RunDoc;
@@ -34,7 +16,7 @@ function RunHeader(props: RunHeaderProps) {
     <Card>
       <CardHeader class="gap-3">
         <div class="flex flex-wrap items-center gap-2 text-sm">
-          <Badge variant={statusBadge(props.run.workflow.status)}>
+          <Badge variant={runStatusBadge(props.run.workflow.status)}>
             {props.run.workflow.status}
           </Badge>
           <Badge variant="outline" class="font-mono text-[11px] uppercase tracking-wide">
@@ -98,21 +80,6 @@ function RunHeader(props: RunHeaderProps) {
         </dl>
       </CardContent>
     </Card>
-  );
-}
-
-function Stat(props: { label: string; value: number; highlight?: boolean }) {
-  return (
-    <div class="grid gap-0.5">
-      <dt class="text-[10px] uppercase tracking-wide text-muted-foreground">{props.label}</dt>
-      <dd
-        class={`text-lg font-semibold tabular-nums ${
-          props.highlight ? "text-status-failed" : "text-foreground"
-        }`}
-      >
-        {props.value.toLocaleString("en-GB")}
-      </dd>
-    </div>
   );
 }
 

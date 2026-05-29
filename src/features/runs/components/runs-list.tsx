@@ -13,7 +13,12 @@ function RunsList() {
 
   let sentinel: HTMLDivElement | undefined;
 
+  // Track hasMore so this effect re-runs when the <Show> below mounts the
+  // sentinel after the first page arrives. Without this dep the effect would
+  // only run once on mount (sentinel === undefined) and infinite scroll would
+  // silently never engage.
   createEffect(() => {
+    if (!store.state().hasMore) return;
     if (!sentinel) return;
     if (typeof IntersectionObserver === "undefined") return;
     const observer = new IntersectionObserver(

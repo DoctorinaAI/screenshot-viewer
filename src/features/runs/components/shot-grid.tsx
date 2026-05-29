@@ -1,12 +1,13 @@
 import { createEffect, For, onCleanup, Show } from "solid-js";
 import type { Shot, ShotGroup } from "@/features/runs/manifest-helpers";
+import type { ManifestIndex } from "@/features/runs/run-store";
 import type { ImagesArchive } from "@/shared/api/storage";
-import { type Manifest, ShotStatus } from "@/shared/lib/schema";
+import { ShotStatus } from "@/shared/lib/schema";
 import { Badge } from "@/shared/ui/badge";
 import { Skeleton } from "@/shared/ui/skeleton";
 
 interface ShotGridProps {
-  manifest: Manifest;
+  index: ManifestIndex | null;
   groups: ShotGroup[];
   archive: ImagesArchive | null;
   archiveLoading: boolean;
@@ -64,7 +65,7 @@ function ShotGrid(props: ShotGridProps) {
                 <For each={group.shots}>
                   {(shot) => (
                     <ShotTile
-                      manifest={props.manifest}
+                      index={props.index}
                       shot={shot}
                       archive={props.archive}
                       archiveLoading={props.archiveLoading}
@@ -82,7 +83,7 @@ function ShotGrid(props: ShotGridProps) {
 }
 
 interface ShotTileProps {
-  manifest: Manifest;
+  index: ManifestIndex | null;
   shot: Shot;
   archive: ImagesArchive | null;
   archiveLoading: boolean;
@@ -90,8 +91,8 @@ interface ShotTileProps {
 }
 
 function ShotTile(props: ShotTileProps) {
-  const language = () => props.manifest.languages.find((l) => l.code === props.shot.languageCode);
-  const layout = () => props.manifest.layouts.find((l) => l.id === props.shot.layoutId);
+  const language = () => props.index?.languages.get(props.shot.languageCode);
+  const layout = () => props.index?.layouts.get(props.shot.layoutId);
   const url = () => props.archive?.urls.get(props.shot.imageHash) ?? null;
 
   return (

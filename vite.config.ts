@@ -25,36 +25,18 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Pre-cache the app shell.
+        // Pre-cache the app shell only. Run artifacts (manifest.json +
+        // images.zip on Cloud Storage) are intentionally NOT runtime-cached:
+        // CacheFirst would serve them to a different signed-in user on a
+        // shared machine after sign-out, defeating the @doctorina.com ACL.
+        // The browser's HTTP cache (Cloud Storage already sets immutable
+        // Cache-Control on these objects) gives us fast repeat reads inside
+        // a session without persisting auth-restricted content past it.
         globPatterns: ["**/*.{js,css,html,svg,ico,woff,woff2}"],
         cleanupOutdatedCaches: true,
-        // Don't pre-cache `index.html` aggressively — `no-cache` headers on
-        // the production response keep it fresh; SW will revalidate on each
-        // navigation request via NetworkFirst (the default for the offline
-        // navigation fallback).
         navigateFallback: "/index.html",
-        // Allow the offline fallback for any same-origin route, except the
-        // Firebase Auth handler URLs.
+        // Don't intercept Firebase Auth handler URLs.
         navigateFallbackDenylist: [/^\/__\/auth\//],
-        runtimeCaching: [
-          // Cache each run's manifest.json + images.zip from Cloud Storage.
-          // 30-day TTL — matches the Firestore TTL on runs.expireAt so cached
-          // entries fall out at the same time the underlying object is purged.
-          {
-            urlPattern: ({ url }) =>
-              url.origin === "https://firebasestorage.googleapis.com" &&
-              url.pathname.includes("/runs/"),
-            handler: "CacheFirst",
-            options: {
-              cacheName: "doctorina-run-artifacts",
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 30 * 24 * 60 * 60,
-              },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-        ],
       },
     }),
   ],
