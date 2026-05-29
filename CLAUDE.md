@@ -51,7 +51,7 @@ firebase/                Firestore + Storage rules, indexes, CORS, lifecycle
 | Command | Action |
 |---|---|
 | `/check` | `bun run check && bun run typecheck && bun run build` |
-| `/deploy-firebase` | `firebase deploy --only firestore,storage --project doctorina-test` |
+| `/deploy-firebase` | `firebase deploy --only firestore:rules,firestore:indexes,storage --project doctorina-test` |
 
 ## Skills
 

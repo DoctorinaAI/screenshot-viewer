@@ -50,7 +50,7 @@ See [`rules/solidjs.md`](rules/solidjs.md). One-line summary:
 - Tailwind v4. Theme tokens are CSS custom properties (defined in `src/index.css`) referenced from Tailwind via `@theme inline`.
 - CVA for component variants. `cn()` from `@/shared/lib/cn` for combining classes — clsx + tailwind-merge.
 - Adaptive (mobile-first) — start with the smallest breakpoint and override upward (`sm:`, `md:`, `lg:`, `xl:`).
-- Dark mode via `class="dark"` on `<html>`. CSS tokens have `:root.dark { ... }` overrides.
+- Dark mode via `class="dark"` on `<html>`. CSS tokens have `.dark { ... }` overrides (matches `@custom-variant dark (&:where(.dark, .dark *))` in `src/index.css`).
 
 ## Components
 
