@@ -9,7 +9,10 @@ function App() {
         <h1 class="text-3xl font-semibold tracking-tight">Doctorina · Screenshots</h1>
         <p class="text-muted-foreground">
           Bootstrap placeholder. The viewer SPA is not yet implemented — see{" "}
-          <a class="underline underline-offset-4" href="https://github.com/DoctorinaAI/doctorina/issues/3695">
+          <a
+            class="underline underline-offset-4"
+            href="https://github.com/DoctorinaAI/doctorina/issues/3695"
+          >
             DoctorinaAI/doctorina#3695
           </a>{" "}
           and{" "}

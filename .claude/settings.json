@@ -59,6 +59,7 @@
       "Bash(env)",
       "Bash(tree*)",
       "Bash(diff*)",
+      "Bash(jq*)",
       "Bash(curl -sSf*)",
       "Bash(bun --version)",
       "Bash(bun install*)",
@@ -69,7 +70,10 @@
       "Bash(firebase --version)",
       "Bash(firebase projects:list*)",
       "Bash(firebase apps:list*)",
+      "Bash(firebase apps:sdkconfig*)",
       "Bash(firebase firestore:indexes*)",
+      "Bash(firebase hosting:sites:list*)",
+      "Bash(firebase use*)",
       "Bash(firebase deploy --only firestore:rules*)",
       "Bash(firebase deploy --only firestore:indexes*)",
       "Bash(firebase deploy --only storage*)",
@@ -78,23 +82,75 @@
       "Bash(gcloud --version)",
       "Bash(gcloud auth list)",
       "Bash(gcloud config get-value*)",
+      "Bash(gcloud config list*)",
       "Bash(gcloud storage buckets describe*)",
       "Bash(gcloud storage ls*)",
-      "Bash(gcloud firestore fields ttls list*)"
+      "Bash(gcloud firestore fields ttls list*)",
+      "Bash(gcloud iam service-accounts list*)",
+      "Bash(gcloud iam service-accounts describe*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_navigate_back",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_network_requests",
+      "mcp__playwright__browser_evaluate",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_hover",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_fill_form",
+      "mcp__playwright__browser_press_key",
+      "mcp__playwright__browser_select_option",
+      "mcp__playwright__browser_drag",
+      "mcp__playwright__browser_resize",
+      "mcp__playwright__browser_tabs",
+      "mcp__playwright__browser_close"
     ],
     "deny": [
+      "Read(.env*)",
+      "Read(**/.env*)",
+      "Edit(.env*)",
+      "Edit(**/.env*)",
+      "Write(.env*)",
+      "Write(**/.env*)",
+      "Bash(cat *.env*)",
+      "Bash(cat */.env*)",
+      "Bash(head *.env*)",
+      "Bash(tail *.env*)",
+      "Bash(less *.env*)",
+      "Bash(rm -rf /)",
       "Bash(rm -rf /*)",
+      "Bash(rm -rf ~)",
       "Bash(rm -rf ~/*)",
+      "Bash(mkfs *)",
+      "Bash(dd if=*)",
       "Bash(git push --force*)",
       "Bash(git push -f*)",
+      "Bash(git push --force-with-lease*)",
       "Bash(git reset --hard*)",
-      "Bash(firebase deploy*)",
+      "Bash(git checkout -- .)",
+      "Bash(git clean -f*)",
+      "Bash(git branch -D*)",
+      "Bash(firebase deploy --only functions*)",
       "Bash(gcloud projects delete*)",
       "Bash(gcloud iam service-accounts delete*)",
       "Bash(gcloud iam service-accounts keys delete*)",
       "Bash(gcloud storage buckets delete*)",
       "Bash(gcloud storage rm -r*)",
       "Bash(gcloud firestore databases delete*)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/stop-reminder.sh"
+          }
+        ]
+      }
     ]
   }
 }

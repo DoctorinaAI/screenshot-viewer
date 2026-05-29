@@ -1,5 +1,6 @@
 ---
 description: Deploy Firestore rules + indexes and Storage rules to the doctorina-test project. Does not touch Hosting.
+allowed-tools: Bash
 ---
 
 From the `firebase/` subdirectory:

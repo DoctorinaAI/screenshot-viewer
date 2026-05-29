@@ -132,7 +132,7 @@ Defined in [`src/index.css`](../src/index.css):
   /* ... */
 }
 
-:root.dark {
+.dark {
   --background: oklch(...);
   /* ... */
 }

@@ -45,7 +45,8 @@ bun run check                  # biome lint + format check
 bun run typecheck              # tsc --noEmit
 bun run test                   # vitest run
 bun run build                  # production bundle
-firebase deploy --only hosting:doctorina-test --project doctorina-test  # ship
+firebase deploy --only firestore:rules,firestore:indexes,storage --project doctorina-test  # rules + indexes
+firebase deploy --only hosting --project doctorina-test                                     # ship the SPA
 ```
 
 ## Pointers

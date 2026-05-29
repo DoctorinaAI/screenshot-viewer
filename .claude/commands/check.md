@@ -1,5 +1,6 @@
 ---
 description: Run the project's quality gates — Biome (lint + format), tsc typecheck, and a production build.
+allowed-tools: Bash
 ---
 
 Run `bun run check && bun run typecheck && bun run build` from the repo root. Stop and report on the first failure; do not auto-fix without confirmation.

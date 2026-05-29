@@ -26,7 +26,7 @@ Mirror Tailwind defaults; do not invent custom names.
 ## Theme
 
 - Light + dark, system preference by default. Theme switcher in the header.
-- Tokens defined as CSS custom properties on `:root` and `:root.dark`; Tailwind reads them via `@theme inline { ... }` (v4 syntax).
+- Tokens defined as CSS custom properties on `:root` for light and on `.dark` for dark (toggle via `class="dark"` on `<html>`); Tailwind reads them via `@theme inline { ... }` (v4 syntax).
 - Status colours are semantic (`--color-status-ok`, `--color-status-warning`, `--color-status-failed`), not raw red/green/yellow — keeps room to retune contrast.
 
 ## Component checklist (Milestone 1)
