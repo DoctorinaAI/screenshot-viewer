@@ -4,6 +4,14 @@
 /* Dark variant: enabled by class="dark" on <html>. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Kobalte UI state variants (replaces @kobalte/tailwindcss plugin). */
+@custom-variant ui-disabled (&[data-disabled]);
+@custom-variant ui-checked (&[data-checked]);
+@custom-variant ui-selected (&[data-selected]);
+@custom-variant ui-highlighted (&[data-highlighted]);
+@custom-variant ui-invalid (&[data-invalid]);
+@custom-variant ui-placeholder-shown (&[data-placeholder-shown]);
+
 /*
  * Theme tokens — light first, dark overrides below.
  * Use semantic names everywhere (`bg-background`, `text-foreground`, `bg-status-failed`).
@@ -16,6 +24,9 @@
 
   --card: oklch(100% 0 0);
   --card-foreground: oklch(15% 0 0);
+
+  --popover: oklch(100% 0 0);
+  --popover-foreground: oklch(15% 0 0);
 
   --primary: oklch(55% 0.18 265);
   --primary-foreground: oklch(98% 0 0);
@@ -53,6 +64,9 @@
   --card: oklch(18% 0 0);
   --card-foreground: oklch(98% 0 0);
 
+  --popover: oklch(18% 0 0);
+  --popover-foreground: oklch(98% 0 0);
+
   --primary: oklch(70% 0.16 265);
   --primary-foreground: oklch(15% 0 0);
 
@@ -85,6 +99,8 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -109,16 +125,71 @@
   --radius-sm: calc(var(--radius) - 4px);
 }
 
+/* Animations consumed by components: Skeleton (shimmer) + ripple directive. */
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes ripple-expand {
+  0% {
+    transform: scale(0);
+    opacity: 0.12;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
 @layer base {
   html {
     color-scheme: light dark;
   }
   body {
     min-height: 100dvh;
+    background-color: var(--background);
+    color: var(--foreground);
     font-family:
       ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
       "Helvetica Neue", Arial, "Noto Sans", sans-serif;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+
+  button,
+  [role="button"],
+  a,
+  label,
+  summary,
+  [tabindex] {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  ::selection {
+    background: color-mix(in oklch, var(--primary) 25%, transparent);
+    color: var(--foreground);
+  }
+
+  /* Smooth theme switching. */
+  :root,
+  .dark {
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

@@ -43,5 +43,17 @@
   },
   "files": {
     "includes": ["**", "!**/node_modules", "!**/dist"]
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["src/index.css"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noImportantStyles": "off"
+          }
+        }
+      }
+    }
+  ]
 }
