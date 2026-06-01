@@ -218,7 +218,7 @@ const ZManifestApp = z.object({
   name: z.string(),
   version: z.string(),
   buildNumber: z.number().int(),
-  flavor: z.string(),
+  flavor: z.string().optional(),
   environment: z.enum(AppEnvironmentValues),
   flutterVersion: z.string(),
   dartVersion: z.string(),
@@ -228,9 +228,9 @@ const ZManifestApp = z.object({
 const ZManifestCase = z.object({
   id: z.string(),
   title: z.string(),
-  description: z.string(),
-  feature: z.string(),
-  tags: z.array(z.string()),
+  description: z.string().optional(),
+  feature: z.string().optional(),
+  tags: z.array(z.string()).optional(),
   sourceFile: z.string().optional(),
 });
 

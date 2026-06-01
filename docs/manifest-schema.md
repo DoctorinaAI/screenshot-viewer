@@ -187,7 +187,7 @@ export interface Manifest {
     name: string;
     version: string;
     buildNumber: number;
-    flavor: string;
+    flavor?: string;
     environment: AppEnvironment;
     flutterVersion: string;
     dartVersion: string;
@@ -200,9 +200,9 @@ export interface Manifest {
   cases: Array<{
     id: string;                    // "auth/login/empty_form"
     title: string;
-    description: string;
-    feature: string;
-    tags: string[];
+    description?: string;
+    feature?: string;
+    tags?: string[];
     sourceFile?: string;           // "test/cases/auth_login_test.dart:42"
   }>;
 

@@ -210,6 +210,22 @@ describe("ManifestSchema", () => {
     expect(() => ManifestSchema.parse(withDeps)).not.toThrow();
   });
 
+  it("accepts a manifest without app.flavor or case description/feature/tags", () => {
+    const lean = {
+      ...minimalManifest,
+      app: {
+        name: minimalManifest.app.name,
+        version: minimalManifest.app.version,
+        buildNumber: minimalManifest.app.buildNumber,
+        environment: minimalManifest.app.environment,
+        flutterVersion: minimalManifest.app.flutterVersion,
+        dartVersion: minimalManifest.app.dartVersion,
+      },
+      cases: [{ id: "auth/login/empty_form", title: "Empty form" }],
+    };
+    expect(() => ManifestSchema.parse(lean)).not.toThrow();
+  });
+
   it("accepts a pr block with labels[] when set", () => {
     const withPr = {
       ...minimalManifest,
