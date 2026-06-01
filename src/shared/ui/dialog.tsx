@@ -22,8 +22,15 @@ function DialogContent(props: ParentProps<{ class?: string }>) {
       />
       <KDialog.Content
         class={cn(
-          "fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4",
-          "rounded-lg border bg-background p-6 shadow-lg duration-200",
+          // Mobile: near-full-bleed with internal scroll so tall content
+          // (e.g. compare panes in the lightbox) never spills off-viewport
+          // and the controls at the bottom stay reachable.
+          "fixed top-2 right-2 bottom-2 left-2 z-50 grid max-h-[calc(100dvh-1rem)] gap-3 overflow-y-auto",
+          // Desktop: centered card with the original sizing. Set each side
+          // individually so the sm: overrides win cleanly (shorthand
+          // `inset-x-auto` would clobber `left-1/2` once sorted).
+          "sm:top-1/2 sm:right-auto sm:bottom-auto sm:left-1/2 sm:w-full sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-h-[calc(100dvh-4rem)] sm:gap-4",
+          "rounded-lg border bg-background p-3 shadow-lg duration-200 sm:p-6",
           "data-[expanded]:animate-in data-[expanded]:fade-in-0 data-[expanded]:zoom-in-95",
           "data-[closed]:animate-out data-[closed]:fade-out-0 data-[closed]:zoom-out-95",
           local.class,

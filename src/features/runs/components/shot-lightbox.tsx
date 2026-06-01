@@ -1,4 +1,13 @@
-import { createEffect, createMemo, createSignal, Match, onCleanup, Show, Switch } from "solid-js";
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  For,
+  Match,
+  onCleanup,
+  Show,
+  Switch,
+} from "solid-js";
 import type { Shot } from "@/features/runs/manifest-helpers";
 import type { ManifestIndex } from "@/features/runs/run-store";
 import type { ImagesArchive } from "@/shared/api/storage";
@@ -15,16 +24,25 @@ interface Props {
   onChangeIndex: (next: number | null) => void;
 }
 
+type Mode = "single" | "diff-paired" | "diff-unpaired";
+type MobileTab = "1" | "2" | "current";
+
 /**
- * Diff is driven by keys `1` (pin left) / `2` (pin right) / `3` (clear).
+ * Lightbox with compare. Three render modes by (pins, currentIndex):
+ *  - `single`        — no pins or one pin: one image (the current shot).
+ *  - `diff-paired`   — both pinned AND current = one of them: 2-pane diff,
+ *                      the matching pane gets a "you are here" ring.
+ *  - `diff-unpaired` — both pinned AND current is neither: 3-pane diff with
+ *                      the current shot highlighted in the middle.
  *
- * Three render modes:
- *  - `single`        — no pins, or only one pin: one image (the current shot).
- *  - `diff-paired`   — both pinned AND current = one of the pins: 2-pane diff,
- *                      the matching pane is marked "current".
- *  - `diff-unpaired` — both pinned AND current is neither: 3 panes, with the
- *                      current shot highlighted in the middle and arrowed pin
- *                      buttons making the slot-replacement obvious.
+ * Layout adapts to viewport:
+ *  - md+ (≥768px): full multi-pane comparison as described above.
+ *  - <md: a tab strip lets the user swap between {1, current?, 2}; only one
+ *         image is shown at a time so each fills the screen. Two portrait
+ *         screenshots side-by-side at 390 px is unreadable, so we don't
+ *         pretend otherwise.
+ *
+ * Diff keys: `1` pins left, `2` pins right, `3` (and Backspace) clears.
  */
 function ShotLightbox(props: Props) {
   const t = useT();
@@ -45,11 +63,46 @@ function ShotLightbox(props: Props) {
   const leftPinned = () => leftIndex() !== null && leftIndex() === props.shotIndex;
   const rightPinned = () => rightIndex() !== null && rightIndex() === props.shotIndex;
 
-  const mode = createMemo<"single" | "diff-paired" | "diff-unpaired">(() => {
+  const mode = createMemo<Mode>(() => {
     if (!bothPinned()) return "single";
     if (leftPinned() || rightPinned()) return "diff-paired";
     return "diff-unpaired";
   });
+
+  // Mobile compare: track which pane the user is peeking at. Auto-snaps back
+  // to whichever pane corresponds to their current navigation index so arrow
+  // navigation always lands on a visible image.
+  const [mobileTab, setMobileTab] = createSignal<MobileTab>("current");
+  createEffect(() => {
+    void props.shotIndex;
+    void leftIndex();
+    void rightIndex();
+    if (leftPinned()) setMobileTab("1");
+    else if (rightPinned()) setMobileTab("2");
+    else setMobileTab("current");
+  });
+
+  const mobileTabShot = () => {
+    switch (mobileTab()) {
+      case "1":
+        return shotAt(leftIndex());
+      case "2":
+        return shotAt(rightIndex());
+      default:
+        return current();
+    }
+  };
+  const mobileTabUrl = () => urlFor(mobileTabShot());
+  const mobileTabSlotIndex = () => {
+    switch (mobileTab()) {
+      case "1":
+        return leftIndex();
+      case "2":
+        return rightIndex();
+      default:
+        return props.shotIndex;
+    }
+  };
 
   const meta = (shot: Shot | null) => {
     if (!shot) return null;
@@ -102,9 +155,6 @@ function ShotLightbox(props: Props) {
     if (!open()) clearDiff();
   });
 
-  // Pin-button labels switch between "Pin as N" (empty slot) and
-  // "Replace N" (slot is filled with a different shot) so the user knows
-  // up-front whether pressing the key adds or overwrites.
   function pinLeftLabel(): string {
     if (leftIndex() === null) return t("lightbox.pinAs1");
     if (leftPinned()) return t("lightbox.pin1");
@@ -116,6 +166,14 @@ function ShotLightbox(props: Props) {
     return t("lightbox.replace2");
   }
 
+  // Which mobile tabs to render. In diff-paired the current = one of the pins,
+  // so showing a separate "current" tab would duplicate it.
+  const mobileTabs = createMemo<MobileTab[]>(() => {
+    if (mode() === "diff-paired") return ["1", "2"];
+    if (mode() === "diff-unpaired") return ["1", "current", "2"];
+    return [];
+  });
+
   return (
     <Dialog
       open={open()}
@@ -123,11 +181,11 @@ function ShotLightbox(props: Props) {
         if (!next) props.onChangeIndex(null);
       }}
     >
-      <DialogContent class="w-[min(72rem,calc(100vw-1.5rem))] max-w-none">
+      <DialogContent class="sm:w-[min(72rem,calc(100vw-1.5rem))] sm:max-w-none">
         <Show when={meta(current())}>
           {(m) => (
-            <div class="grid gap-3">
-              <DialogTitle class="flex min-w-0 flex-wrap items-center gap-2 text-base">
+            <div class="flex h-full flex-col gap-3">
+              <DialogTitle class="flex min-w-0 flex-wrap items-center gap-2 pr-8 text-base">
                 <span class="min-w-0 truncate">{m().case?.title ?? m().shot.caseId}</span>
                 <Badge variant="secondary" class="text-[11px]">
                   {m().lang?.name ?? m().shot.languageCode}
@@ -138,8 +196,6 @@ function ShotLightbox(props: Props) {
                 <Badge variant="outline" class="text-[11px]">
                   {m().shot.platform}
                 </Badge>
-                {/* In diff mode the title always describes the current shot;
-                    surface that explicitly so the user knows what's referenced. */}
                 <Show when={bothPinned()}>
                   <Badge variant="default" class="text-[11px]" data-testid="lightbox-current-badge">
                     {t("lightbox.current")}
@@ -157,99 +213,174 @@ function ShotLightbox(props: Props) {
                 </Show>
               </DialogTitle>
 
-              <Switch>
-                {/* No pins, or only one pin → single image. */}
-                <Match when={mode() === "single"}>
-                  <div class="relative grid place-items-center rounded-md bg-muted">
-                    <Show
-                      when={url()}
-                      fallback={
-                        <p class="py-12 text-sm text-muted-foreground">{t("lightbox.loading")}</p>
-                      }
-                    >
-                      <img
-                        src={url() ?? ""}
-                        alt={m().case?.title ?? m().shot.caseId}
-                        decoding="async"
-                        draggable={false}
-                        class="max-h-[70vh] w-auto select-none object-contain"
+              {/* Mobile tab strip — only rendered in diff modes. Hidden on md+. */}
+              <Show when={mobileTabs().length > 0}>
+                <div class="flex gap-1 md:hidden" role="tablist" aria-label={t("lightbox.current")}>
+                  <For each={mobileTabs()}>
+                    {(tab) => (
+                      <MobileTabButton
+                        tab={tab}
+                        active={mobileTab() === tab}
+                        leftIndex={leftIndex()}
+                        rightIndex={rightIndex()}
+                        currentIndex={props.shotIndex}
+                        onSelect={() => setMobileTab(tab)}
                       />
-                    </Show>
-                  </div>
-                </Match>
+                    )}
+                  </For>
+                </div>
+              </Show>
 
-                {/* Both pinned AND current = one of them → 2-pane diff. */}
-                <Match when={mode() === "diff-paired"}>
-                  <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <DiffPane
-                      label="1"
-                      badgeVariant="ok"
-                      shot={shotAt(leftIndex())}
-                      url={urlFor(shotAt(leftIndex()))}
-                      index={props.index}
-                      isCurrent={leftPinned()}
-                      slotIndex={leftIndex()}
-                    />
-                    <DiffPane
-                      label="2"
-                      badgeVariant="warning"
-                      shot={shotAt(rightIndex())}
-                      url={urlFor(shotAt(rightIndex()))}
-                      index={props.index}
-                      isCurrent={rightPinned()}
-                      slotIndex={rightIndex()}
-                    />
-                  </div>
-                </Match>
+              {/* IMAGE AREA */}
+              <div class="min-h-0 flex-1">
+                <Switch>
+                  {/* Single image — same everywhere. */}
+                  <Match when={mode() === "single"}>
+                    <div class="grid h-full place-items-center rounded-md bg-muted">
+                      <Show
+                        when={url()}
+                        fallback={
+                          <p class="py-12 text-sm text-muted-foreground">{t("lightbox.loading")}</p>
+                        }
+                      >
+                        <img
+                          src={url() ?? ""}
+                          alt={m().case?.title ?? m().shot.caseId}
+                          decoding="async"
+                          draggable={false}
+                          class="max-h-[70vh] w-auto select-none object-contain sm:max-h-[65vh]"
+                        />
+                      </Show>
+                    </div>
+                  </Match>
 
-                {/* Both pinned AND current is neither → 3-pane: pin1 | CURRENT | pin2.
-                    On desktop the current pane sits in the middle (larger), on
-                    mobile the three panes stack with current on top. */}
-                <Match when={mode() === "diff-unpaired"}>
-                  <div class="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1.4fr_1fr]">
-                    {/* Current sits first in source order so mobile shows it
-                        first; on md+ we re-order via grid column placement. */}
-                    <DiffPane
-                      label={t("lightbox.current")}
-                      labelKind="current"
-                      shot={current()}
-                      url={url()}
-                      index={props.index}
-                      isCurrent={true}
-                      slotIndex={props.shotIndex}
-                      class="md:order-2"
-                    />
-                    <DiffPane
-                      label="1"
-                      badgeVariant="ok"
-                      shot={shotAt(leftIndex())}
-                      url={urlFor(shotAt(leftIndex()))}
-                      index={props.index}
-                      slotIndex={leftIndex()}
-                      class="md:order-1"
-                    />
-                    <DiffPane
-                      label="2"
-                      badgeVariant="warning"
-                      shot={shotAt(rightIndex())}
-                      url={urlFor(shotAt(rightIndex()))}
-                      index={props.index}
-                      slotIndex={rightIndex()}
-                      class="md:order-3"
-                    />
-                  </div>
-                </Match>
-              </Switch>
+                  {/* Both pinned AND current = one of them. */}
+                  <Match when={mode() === "diff-paired"}>
+                    {/* Mobile: single image driven by the active tab. */}
+                    <div class="md:hidden">
+                      <DiffPane
+                        label={mobileTab() === "1" ? "1" : "2"}
+                        badgeVariant={mobileTab() === "1" ? "ok" : "warning"}
+                        shot={mobileTabShot()}
+                        url={mobileTabUrl()}
+                        index={props.index}
+                        isCurrent={
+                          (mobileTab() === "1" && leftPinned()) ||
+                          (mobileTab() === "2" && rightPinned())
+                        }
+                        slotIndex={mobileTabSlotIndex()}
+                        size="mobile"
+                      />
+                    </div>
+                    {/* Desktop: full 2-pane side-by-side. */}
+                    <div class="hidden gap-3 md:grid md:grid-cols-2">
+                      <DiffPane
+                        label="1"
+                        badgeVariant="ok"
+                        shot={shotAt(leftIndex())}
+                        url={urlFor(shotAt(leftIndex()))}
+                        index={props.index}
+                        isCurrent={leftPinned()}
+                        slotIndex={leftIndex()}
+                      />
+                      <DiffPane
+                        label="2"
+                        badgeVariant="warning"
+                        shot={shotAt(rightIndex())}
+                        url={urlFor(shotAt(rightIndex()))}
+                        index={props.index}
+                        isCurrent={rightPinned()}
+                        slotIndex={rightIndex()}
+                      />
+                    </div>
+                  </Match>
 
-              <div class="grid gap-3">
-                {/* Diff controls (clickable buttons mirroring the keyboard). */}
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                  <div class="flex flex-wrap items-center gap-1.5">
+                  {/* Both pinned AND current is neither. */}
+                  <Match when={mode() === "diff-unpaired"}>
+                    {/* Mobile: single image driven by the active tab. */}
+                    <div class="md:hidden">
+                      <Switch>
+                        <Match when={mobileTab() === "1"}>
+                          <DiffPane
+                            label="1"
+                            badgeVariant="ok"
+                            shot={shotAt(leftIndex())}
+                            url={urlFor(shotAt(leftIndex()))}
+                            index={props.index}
+                            slotIndex={leftIndex()}
+                            size="mobile"
+                          />
+                        </Match>
+                        <Match when={mobileTab() === "2"}>
+                          <DiffPane
+                            label="2"
+                            badgeVariant="warning"
+                            shot={shotAt(rightIndex())}
+                            url={urlFor(shotAt(rightIndex()))}
+                            index={props.index}
+                            slotIndex={rightIndex()}
+                            size="mobile"
+                          />
+                        </Match>
+                        <Match when={mobileTab() === "current"}>
+                          <DiffPane
+                            label={t("lightbox.current")}
+                            labelKind="current"
+                            shot={current()}
+                            url={url()}
+                            index={props.index}
+                            isCurrent={true}
+                            slotIndex={props.shotIndex}
+                            size="mobile"
+                          />
+                        </Match>
+                      </Switch>
+                    </div>
+                    {/* Desktop: full 3-pane with current in the middle. */}
+                    <div class="hidden gap-3 md:grid md:grid-cols-[1fr_1.4fr_1fr]">
+                      <DiffPane
+                        label={t("lightbox.current")}
+                        labelKind="current"
+                        shot={current()}
+                        url={url()}
+                        index={props.index}
+                        isCurrent={true}
+                        slotIndex={props.shotIndex}
+                        class="md:order-2"
+                      />
+                      <DiffPane
+                        label="1"
+                        badgeVariant="ok"
+                        shot={shotAt(leftIndex())}
+                        url={urlFor(shotAt(leftIndex()))}
+                        index={props.index}
+                        slotIndex={leftIndex()}
+                        class="md:order-1"
+                      />
+                      <DiffPane
+                        label="2"
+                        badgeVariant="warning"
+                        shot={shotAt(rightIndex())}
+                        url={urlFor(shotAt(rightIndex()))}
+                        index={props.index}
+                        slotIndex={rightIndex()}
+                        class="md:order-3"
+                      />
+                    </div>
+                  </Match>
+                </Switch>
+              </div>
+
+              {/* CONTROLS — sticky at the bottom of the dialog so they're
+                  always reachable, even after the image scrolls. */}
+              <div class="sticky bottom-0 -mx-3 grid gap-2 border-t bg-background/95 px-3 pb-1 pt-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-0">
+                <div class="flex flex-wrap items-center gap-2 sm:justify-between">
+                  <div class="flex w-full flex-wrap items-center gap-1.5 sm:w-auto">
                     <Button
                       type="button"
                       variant={leftPinned() ? "default" : "outline"}
                       size="sm"
-                      class="h-8 select-none gap-1.5"
+                      class="h-10 flex-1 select-none gap-1.5 sm:h-8 sm:flex-initial"
                       onClick={pinLeft}
                       aria-pressed={leftPinned()}
                       title={
@@ -267,7 +398,7 @@ function ShotLightbox(props: Props) {
                       type="button"
                       variant={rightPinned() ? "default" : "outline"}
                       size="sm"
-                      class="h-8 select-none gap-1.5"
+                      class="h-10 flex-1 select-none gap-1.5 sm:h-8 sm:flex-initial"
                       onClick={pinRight}
                       aria-pressed={rightPinned()}
                       title={
@@ -285,7 +416,7 @@ function ShotLightbox(props: Props) {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      class="h-8 select-none gap-1.5"
+                      class="h-10 select-none gap-1.5 sm:h-8"
                       onClick={clearDiff}
                       disabled={leftIndex() === null && rightIndex() === null}
                     >
@@ -295,12 +426,12 @@ function ShotLightbox(props: Props) {
                       <span>{t("lightbox.clearDiff")}</span>
                     </Button>
                   </div>
-                  <div class="flex shrink-0 gap-1.5">
+                  <div class="flex w-full shrink-0 gap-1.5 sm:w-auto">
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      class="h-8 select-none"
+                      class="h-10 flex-1 select-none sm:h-8 sm:flex-initial"
                       disabled={props.shotIndex === 0}
                       onClick={() => step(-1)}
                       aria-label={t("common.previous")}
@@ -312,7 +443,7 @@ function ShotLightbox(props: Props) {
                       type="button"
                       variant="outline"
                       size="sm"
-                      class="h-8 select-none"
+                      class="h-10 flex-1 select-none sm:h-8 sm:flex-initial"
                       disabled={props.shotIndex === props.shots.length - 1}
                       onClick={() => step(+1)}
                       aria-label={t("common.next")}
@@ -356,6 +487,63 @@ function ShotLightbox(props: Props) {
         </Show>
       </DialogContent>
     </Dialog>
+  );
+}
+
+interface MobileTabButtonProps {
+  tab: MobileTab;
+  active: boolean;
+  leftIndex: number | null;
+  rightIndex: number | null;
+  currentIndex: number | null;
+  onSelect: () => void;
+}
+
+function MobileTabButton(props: MobileTabButtonProps) {
+  const t = useT();
+  const slotIndex = () => {
+    switch (props.tab) {
+      case "1":
+        return props.leftIndex;
+      case "2":
+        return props.rightIndex;
+      default:
+        return props.currentIndex;
+    }
+  };
+  const variant = () => {
+    if (props.active) return "default";
+    return "outline";
+  };
+  const badgeVariant = () => {
+    switch (props.tab) {
+      case "1":
+        return "ok";
+      case "2":
+        return "warning";
+      default:
+        return "default";
+    }
+  };
+  const label = () => (props.tab === "current" ? t("lightbox.current") : props.tab);
+
+  return (
+    <Button
+      type="button"
+      variant={variant()}
+      size="sm"
+      class="h-10 flex-1 select-none gap-1.5"
+      onClick={props.onSelect}
+      role="tab"
+      aria-selected={props.active}
+    >
+      <Badge variant={badgeVariant()} class="px-1.5 py-0 text-[10px]">
+        {label()}
+      </Badge>
+      <Show when={slotIndex() !== null && slotIndex() !== undefined}>
+        <span class="font-mono text-[11px] opacity-80">#{(slotIndex() ?? 0) + 1}</span>
+      </Show>
+    </Button>
   );
 }
 
@@ -405,21 +593,18 @@ function ChevronRight() {
 
 interface DiffPaneProps {
   label: string;
-  // For pin slots: "ok" (slot 1) / "warning" (slot 2). For the "current" pane
-  // in diff-unpaired mode we use `labelKind="current"` instead of a variant.
   badgeVariant?: "ok" | "warning";
   labelKind?: "current";
   shot: Shot | null;
   url: string | null;
   index: ManifestIndex | null;
-  // True when this pane represents the user's current navigation position.
-  // The pane gets a ring + "you are here" hint so it never disappears from
-  // sight while the user arrow-scrolls during compare.
   isCurrent?: boolean;
-  // 0-based shot index this pane reflects; rendered as "#N" so the user can
-  // see at a glance which slot holds which shot.
   slotIndex?: number | null;
   class?: string;
+  // "mobile" expands the image to the full available space (single image
+  // visible at a time). "default" keeps the original capped sizing for
+  // side-by-side desktop layouts.
+  size?: "default" | "mobile";
 }
 
 function DiffPane(props: DiffPaneProps) {
@@ -427,7 +612,6 @@ function DiffPane(props: DiffPaneProps) {
   const lang = () => (props.shot ? props.index?.languages.get(props.shot.languageCode) : undefined);
   const layout = () => (props.shot ? props.index?.layouts.get(props.shot.layoutId) : undefined);
 
-  // Ring on the current pane. Solid renders class strings, so we just compose.
   const containerClass = () => {
     const base = "grid gap-2";
     return props.class ? `${base} ${props.class}` : base;
@@ -436,6 +620,10 @@ function DiffPane(props: DiffPaneProps) {
     props.isCurrent
       ? "grid place-items-center rounded-md bg-muted ring-2 ring-primary ring-offset-2 ring-offset-background"
       : "grid place-items-center rounded-md bg-muted";
+  const imgClass = () =>
+    props.size === "mobile"
+      ? "max-h-[60vh] w-auto select-none object-contain"
+      : "max-h-[60vh] w-auto select-none object-contain";
 
   return (
     <figure class={containerClass()}>
@@ -478,7 +666,7 @@ function DiffPane(props: DiffPaneProps) {
             alt={`${props.label} · ${props.shot?.caseId ?? ""}`}
             decoding="async"
             draggable={false}
-            class="max-h-[60vh] w-auto select-none object-contain"
+            class={imgClass()}
           />
         </Show>
       </div>
