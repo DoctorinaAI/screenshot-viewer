@@ -15,6 +15,8 @@ import { unzipSync } from "fflate";
 import { getBlob, ref } from "firebase/storage";
 import { createSignal } from "solid-js";
 import { type Manifest, ManifestSchema } from "@/shared/lib/schema";
+import { USE_FAKE_BACKEND } from "./backend";
+import { fakeFetchImagesArchive, fakeFetchManifest, fakeReleaseImages } from "./fake-storage";
 import { firebaseStorage } from "./firebase";
 
 function storagePathFromUrl(gsUrl: string): string {
@@ -28,6 +30,7 @@ function storagePathFromUrl(gsUrl: string): string {
 }
 
 export async function fetchManifest(gsUrl: string): Promise<Manifest> {
+  if (USE_FAKE_BACKEND) return fakeFetchManifest(gsUrl);
   const path = storagePathFromUrl(gsUrl);
   const blob = await getBlob(ref(firebaseStorage(), path));
   const text = await blob.text();
@@ -50,6 +53,7 @@ export async function fetchImagesArchive(
   gsUrl: string,
   manifest: Manifest,
 ): Promise<ImagesArchive> {
+  if (USE_FAKE_BACKEND) return fakeFetchImagesArchive(gsUrl, manifest);
   const path = storagePathFromUrl(gsUrl);
   const blob = await getBlob(ref(firebaseStorage(), path));
   const buffer = new Uint8Array(await blob.arrayBuffer());
@@ -141,6 +145,10 @@ async function renderThumbnail(blob: Blob): Promise<Blob | null> {
 }
 
 export function releaseImages(archive: ImagesArchive): void {
+  if (USE_FAKE_BACKEND) {
+    fakeReleaseImages(archive);
+    return;
+  }
   for (const url of archive.urls.values()) URL.revokeObjectURL(url);
   for (const url of archive.thumbs().values()) URL.revokeObjectURL(url);
   archive.urls.clear();

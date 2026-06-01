@@ -11,6 +11,7 @@ import { Show } from "solid-js";
 import { AccountMenu } from "@/app/account-menu";
 import { useAppBar } from "@/app/app-bar-context";
 import { useAuth } from "@/features/auth/store";
+import { USE_FAKE_BACKEND } from "@/shared/api/backend";
 import { useT } from "@/shared/lib/i18n";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -125,6 +126,20 @@ function BrandLink() {
     >
       <span aria-hidden="true" class="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-primary" />
       <span class="hidden truncate sm:inline">{t("brand.name")}</span>
+      <Show when={USE_FAKE_BACKEND}>
+        <Tooltip openDelay={250}>
+          <TooltipTrigger
+            as={Badge}
+            variant="warning"
+            class="ml-1 font-mono text-[10px] tracking-wider"
+            title={t("brand.fakeTooltip")}
+            aria-label={t("brand.fakeTooltip")}
+          >
+            {t("brand.fakeBadge")}
+          </TooltipTrigger>
+          <TooltipContent>{t("brand.fakeTooltip")}</TooltipContent>
+        </Tooltip>
+      </Show>
     </A>
   );
 }

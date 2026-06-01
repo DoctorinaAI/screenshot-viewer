@@ -14,6 +14,8 @@ type Dict = Record<string, string>;
 
 const en: Dict = {
   "brand.name": "Doctorina · Screenshots",
+  "brand.fakeBadge": "FAKE",
+  "brand.fakeTooltip": "Synthetic data — fake backend is active.",
   "nav.runs": "Runs",
   "nav.uiKit": "UI Kit",
   "nav.backToRuns": "All runs",
@@ -108,6 +110,8 @@ const en: Dict = {
 
 const ru: Dict = {
   "brand.name": "Doctorina · Скриншоты",
+  "brand.fakeBadge": "FAKE",
+  "brand.fakeTooltip": "Синтетические данные — активен fake-бэкенд.",
   "nav.runs": "Запуски",
   "nav.uiKit": "UI Kit",
   "nav.backToRuns": "К запускам",
@@ -203,6 +207,8 @@ const ru: Dict = {
 
 const es: Dict = {
   "brand.name": "Doctorina · Capturas",
+  "brand.fakeBadge": "FAKE",
+  "brand.fakeTooltip": "Datos sintéticos — backend de prueba activo.",
   "nav.runs": "Ejecuciones",
   "nav.uiKit": "UI Kit",
   "nav.backToRuns": "Todas las ejecuciones",

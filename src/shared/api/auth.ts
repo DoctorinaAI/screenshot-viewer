@@ -12,6 +12,8 @@ import {
   type User,
 } from "firebase/auth";
 import { createSignal, onCleanup } from "solid-js";
+import { USE_FAKE_BACKEND } from "./backend";
+import { createFakeAuthState, fakeSignInWithGoogle, fakeSignOut } from "./fake-auth";
 import { firebaseAuth } from "./firebase";
 
 const DOCTORINA_EMAIL_REGEX = /^[^@]+@doctorina\.com$/;
@@ -35,6 +37,7 @@ export type SignInResult =
   | { ok: false; reason: "popup-blocked" | "cancelled" | "unknown"; error: unknown };
 
 export async function signInWithGoogle(): Promise<SignInResult> {
+  if (USE_FAKE_BACKEND) return fakeSignInWithGoogle();
   try {
     const cred = await signInWithPopup(firebaseAuth(), buildGoogleProvider());
     if (isDoctorinaUser(cred.user)) return { ok: true, user: cred.user };
@@ -51,11 +54,13 @@ export async function signInWithGoogle(): Promise<SignInResult> {
 }
 
 export function signOut(): Promise<void> {
+  if (USE_FAKE_BACKEND) return fakeSignOut();
   return fbSignOut(firebaseAuth());
 }
 
 // Reactive auth state. Use inside a Solid root (e.g. a provider component).
 export function createAuthState() {
+  if (USE_FAKE_BACKEND) return createFakeAuthState();
   const [user, setUser] = createSignal<User | null | undefined>(undefined);
   const unsubscribe = onAuthStateChanged(firebaseAuth(), (next) => {
     if (next && !isDoctorinaUser(next)) {
