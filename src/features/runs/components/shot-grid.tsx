@@ -2,6 +2,7 @@ import { createEffect, For, onCleanup, Show } from "solid-js";
 import type { Shot, ShotGroup } from "@/features/runs/manifest-helpers";
 import type { ManifestIndex } from "@/features/runs/run-store";
 import type { ImagesArchive } from "@/shared/api/storage";
+import { useT } from "@/shared/lib/i18n";
 import { ShotStatus } from "@/shared/lib/schema";
 import { Badge } from "@/shared/ui/badge";
 import { Skeleton } from "@/shared/ui/skeleton";
@@ -15,7 +16,14 @@ interface ShotGridProps {
   onShotClick: (shot: Shot) => void;
 }
 
+/**
+ * Responsive tile grid. Tiles are fixed 9:16 aspect, and the parent grid
+ * uses `content-visibility: auto` with `contain-intrinsic-size` so off-screen
+ * sections don't pay layout cost. Thumbs come from archive.thumbs() with
+ * graceful fallback to the full image while they generate.
+ */
 function ShotGrid(props: ShotGridProps) {
+  const t = useT();
   let sentinel: HTMLDivElement | undefined;
 
   createEffect(() => {
@@ -45,23 +53,27 @@ function ShotGrid(props: ShotGridProps) {
       <div ref={sentinel} aria-hidden="true" />
       <Show
         when={props.groups.length > 0}
-        fallback={<p class="text-sm text-muted-foreground">No shots match the active filters.</p>}
+        fallback={<p class="select-none text-sm text-muted-foreground">{t("run.shots.empty")}</p>}
       >
         <For each={props.groups}>
           {(group) => (
-            <section class="grid gap-3">
+            <section class="grid gap-3 [content-visibility:auto] [contain-intrinsic-size:auto_24rem]">
               <header class="flex items-baseline justify-between gap-3">
-                <div>
-                  <h2 class="text-base font-semibold">{group.title}</h2>
+                <div class="min-w-0">
+                  <h2 class="select-none truncate text-base font-semibold">{group.title}</h2>
                   <Show when={group.description}>
-                    {(desc) => <p class="text-xs text-muted-foreground">{desc()}</p>}
+                    {(desc) => (
+                      <p class="select-none truncate text-xs text-muted-foreground">{desc()}</p>
+                    )}
                   </Show>
                 </div>
                 <Show when={group.hasDifferences}>
-                  <Badge variant="warning">changed</Badge>
+                  <Badge variant="warning" class="shrink-0">
+                    {t("run.changedBadge")}
+                  </Badge>
                 </Show>
               </header>
-              <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                 <For each={group.shots}>
                   {(shot) => (
                     <ShotTile
@@ -93,13 +105,22 @@ interface ShotTileProps {
 function ShotTile(props: ShotTileProps) {
   const language = () => props.index?.languages.get(props.shot.languageCode);
   const layout = () => props.index?.layouts.get(props.shot.layoutId);
-  const url = () => props.archive?.urls.get(props.shot.imageHash) ?? null;
+  // Prefer the thumb; fall back to the full image until a thumb is generated
+  // (or if the source was already small enough that we skipped generation).
+  const url = () => {
+    const archive = props.archive;
+    if (!archive) return null;
+    return (
+      archive.thumbs().get(props.shot.imageHash) ?? archive.urls.get(props.shot.imageHash) ?? null
+    );
+  };
 
   return (
     <button
       type="button"
       onClick={props.onClick}
-      class="group relative flex aspect-[9/16] overflow-hidden rounded-md border bg-muted/40 text-left ring-offset-background transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      class="group relative flex aspect-[9/16] select-none overflow-hidden rounded-md border bg-muted/40 text-left ring-offset-background transition will-change-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      aria-label={`${props.shot.caseId} · ${props.shot.languageCode} · ${props.shot.layoutId}`}
     >
       <Show
         when={url()}
@@ -119,7 +140,11 @@ function ShotTile(props: ShotTileProps) {
           src={url() ?? ""}
           alt={`${props.shot.caseId} · ${props.shot.languageCode} · ${props.shot.layoutId}`}
           loading="lazy"
-          class="h-full w-full object-cover transition group-hover:scale-[1.02]"
+          decoding="async"
+          draggable={false}
+          width={180}
+          height={320}
+          class="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
         />
       </Show>
       <StatusBadge status={props.shot.status} />

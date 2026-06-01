@@ -12,10 +12,12 @@ interface StatProps {
 function Stat(props: StatProps) {
   const size = () => props.size ?? "md";
   return (
-    <div class="grid gap-0.5">
-      <dt class="text-[10px] uppercase tracking-wide text-muted-foreground">{props.label}</dt>
+    <div class="grid select-none gap-0.5 min-w-0">
+      <dt class="truncate text-[10px] uppercase tracking-wide text-muted-foreground">
+        {props.label}
+      </dt>
       <dd
-        class={`font-semibold tabular-nums ${size() === "sm" ? "text-base" : "text-lg"} ${
+        class={`truncate font-semibold tabular-nums ${size() === "sm" ? "text-base" : "text-lg"} ${
           props.highlight ? "text-status-failed" : "text-foreground"
         }`}
       >

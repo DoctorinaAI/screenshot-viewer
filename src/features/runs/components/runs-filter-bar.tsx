@@ -1,93 +1,64 @@
 import { createSignal, For, Show } from "solid-js";
 import type { RunsFilterKey, RunsFilterState } from "@/features/runs/types";
+import { useT } from "@/shared/lib/i18n";
 import {
   RunStatus,
   type RunStatus as RunStatusT,
   WorkflowTrigger,
   type WorkflowTrigger as WorkflowTriggerT,
 } from "@/shared/lib/schema";
-import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverDescription,
-  PopoverTitle,
-  PopoverTrigger,
-} from "@/shared/ui/popover";
 import { Select } from "@/shared/ui/select";
 
-interface RunsFilterBarProps {
+interface RunsFilterEditorProps {
   state: RunsFilterState;
   setState: (next: RunsFilterState) => void;
+  onApplied?: () => void;
 }
 
 interface FilterOption {
   key: RunsFilterKey;
-  label: string;
+  labelKey: string;
 }
 
 const OPTIONS: ReadonlyArray<FilterOption> = [
-  { key: "branch", label: "Branch" },
-  { key: "trigger", label: "Trigger" },
-  { key: "status", label: "Status" },
-  { key: "language", label: "Language" },
-  { key: "appVersion", label: "App version" },
-  { key: "authorEmail", label: "Author email" },
+  { key: "branch", labelKey: "filters.key.branch" },
+  { key: "trigger", labelKey: "filters.key.trigger" },
+  { key: "status", labelKey: "filters.key.status" },
+  { key: "language", labelKey: "filters.key.language" },
+  { key: "appVersion", labelKey: "filters.key.appVersion" },
+  { key: "authorEmail", labelKey: "filters.key.authorEmail" },
 ];
 
-function activeLabel(state: RunsFilterState): string | null {
-  switch (state.kind) {
-    case "none":
-      return null;
-    case "branch":
-      return `branch = ${state.value}`;
-    case "trigger":
-      return `trigger = ${state.value}`;
-    case "status":
-      return `status = ${state.value}`;
-    case "language":
-      return `language = ${state.value}`;
-    case "appVersion":
-      return `version = ${state.value}`;
-    case "authorEmail":
-      return `author = ${state.value}`;
-  }
+/**
+ * Localized label for the currently active filter, used in the app-bar
+ * popover trigger badge. Returns null when no filter is active.
+ */
+function useActiveLabel(): (state: RunsFilterState) => string | null {
+  const t = useT();
+  return (state) => {
+    switch (state.kind) {
+      case "none":
+        return null;
+      case "branch":
+        return `${t("filters.key.branch")}: ${state.value}`;
+      case "trigger":
+        return `${t("filters.key.trigger")}: ${state.value}`;
+      case "status":
+        return `${t("filters.key.status")}: ${state.value}`;
+      case "language":
+        return `${t("filters.key.language")}: ${state.value}`;
+      case "appVersion":
+        return `${t("filters.key.appVersion")}: ${state.value}`;
+      case "authorEmail":
+        return `${t("filters.key.authorEmail")}: ${state.value}`;
+    }
+  };
 }
 
-function RunsFilterBar(props: RunsFilterBarProps) {
-  const label = () => activeLabel(props.state);
-
-  return (
-    <div class="flex flex-wrap items-center gap-2">
-      <Popover>
-        <PopoverTrigger as={Button} variant="outline" size="sm">
-          <FilterIcon />
-          {label() ? "Change filter" : "Filter"}
-        </PopoverTrigger>
-        <PopoverContent class="w-80">
-          <FilterEditor state={props.state} setState={props.setState} />
-        </PopoverContent>
-      </Popover>
-      <Show when={label()}>
-        <Badge variant="secondary" class="gap-1 pr-1">
-          <span class="px-1">{label()}</span>
-          <button
-            type="button"
-            class="rounded-full px-1 text-xs leading-none hover:bg-foreground/10"
-            aria-label="Clear filter"
-            onClick={() => props.setState({ kind: "none" })}
-          >
-            ×
-          </button>
-        </Badge>
-      </Show>
-    </div>
-  );
-}
-
-function FilterEditor(props: RunsFilterBarProps) {
+function RunsFilterEditor(props: RunsFilterEditorProps) {
+  const t = useT();
   const [pendingKey, setPendingKey] = createSignal<RunsFilterKey>(
     props.state.kind === "none" ? "branch" : props.state.kind,
   );
@@ -100,6 +71,7 @@ function FilterEditor(props: RunsFilterBarProps) {
     const value = pendingValue().trim();
     if (!value) {
       props.setState({ kind: "none" });
+      props.onApplied?.();
       return;
     }
     switch (key) {
@@ -122,24 +94,37 @@ function FilterEditor(props: RunsFilterBarProps) {
         props.setState({ kind: "authorEmail", value });
         break;
     }
+    props.onApplied?.();
+  };
+
+  const placeholder = (key: RunsFilterKey): string => {
+    switch (key) {
+      case "branch":
+        return t("filters.placeholder.branch");
+      case "language":
+        return t("filters.placeholder.language");
+      case "appVersion":
+        return t("filters.placeholder.appVersion");
+      case "authorEmail":
+        return t("filters.placeholder.authorEmail");
+      default:
+        return "";
+    }
   };
 
   return (
     <div class="grid gap-3">
-      <PopoverTitle>Filter runs</PopoverTitle>
-      <PopoverDescription>
-        One filter at a time — combos need their own composite index.
-      </PopoverDescription>
       <div class="grid grid-cols-2 gap-1.5">
         <For each={OPTIONS}>
           {(opt) => (
             <Button
               type="button"
               size="sm"
+              class="select-none"
               variant={pendingKey() === opt.key ? "default" : "outline"}
               onClick={() => setPendingKey(opt.key)}
             >
-              {opt.label}
+              {t(opt.labelKey)}
             </Button>
           )}
         </For>
@@ -151,7 +136,7 @@ function FilterEditor(props: RunsFilterBarProps) {
             when={pendingKey() === "status"}
             fallback={
               <Input
-                placeholder={placeholderFor(pendingKey())}
+                placeholder={placeholder(pendingKey())}
                 value={pendingValue()}
                 onInput={(e) => setPendingValue(e.currentTarget.value)}
                 autofocus
@@ -162,7 +147,7 @@ function FilterEditor(props: RunsFilterBarProps) {
               options={[RunStatus.Success, RunStatus.Partial, RunStatus.Failed]}
               value={(pendingValue() as RunStatusT) || undefined}
               onChange={(v) => setPendingValue(v ?? "")}
-              placeholder="Pick status"
+              placeholder={t("filters.pickStatus")}
             />
           </Show>
         }
@@ -176,60 +161,29 @@ function FilterEditor(props: RunsFilterBarProps) {
           ]}
           value={(pendingValue() as WorkflowTriggerT) || undefined}
           onChange={(v) => setPendingValue(v ?? "")}
-          placeholder="Pick trigger"
+          placeholder={t("filters.pickTrigger")}
         />
       </Show>
-      <div class="flex justify-end gap-2 pt-2">
+      <div class="flex justify-end gap-2 pt-1">
         <Button
           type="button"
           variant="ghost"
           size="sm"
+          class="select-none"
           onClick={() => {
             setPendingValue("");
             props.setState({ kind: "none" });
+            props.onApplied?.();
           }}
         >
-          Clear
+          {t("common.clear")}
         </Button>
-        <Button type="button" size="sm" onClick={apply}>
-          Apply
+        <Button type="button" size="sm" class="select-none" onClick={apply}>
+          {t("common.apply")}
         </Button>
       </div>
     </div>
   );
 }
 
-function placeholderFor(key: RunsFilterKey): string {
-  switch (key) {
-    case "branch":
-      return "develop";
-    case "language":
-      return "en";
-    case "appVersion":
-      return "1.42.0+1234";
-    case "authorEmail":
-      return "user@doctorina.com";
-    default:
-      return "";
-  }
-}
-
-function FilterIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      class="h-4 w-4"
-      aria-hidden="true"
-    >
-      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-    </svg>
-  );
-}
-
-export { RunsFilterBar };
+export { RunsFilterEditor, useActiveLabel };

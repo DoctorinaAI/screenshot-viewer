@@ -1,16 +1,19 @@
 import { A, useParams } from "@solidjs/router";
 import { createMemo, createSignal, Show } from "solid-js";
+import { useRegisterBack, useRegisterFilters } from "@/app/app-bar-context";
 import { RunFilterBar } from "@/features/runs/components/run-filter-bar";
 import { RunGroupingSwitcher } from "@/features/runs/components/run-grouping-switcher";
 import { RunHeader } from "@/features/runs/components/run-header";
 import { ShotGrid } from "@/features/runs/components/shot-grid";
 import { ShotLightbox } from "@/features/runs/components/shot-lightbox";
 import { createRunStore } from "@/features/runs/run-store";
+import { useT } from "@/shared/lib/i18n";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
 import { Skeleton } from "@/shared/ui/skeleton";
 
 function RunPage() {
+  const t = useT();
   const params = useParams<{ runId: string }>();
   // Pass an accessor so the store refetches when @solidjs/router updates the
   // param without remounting the page (same route pattern, different runId).
@@ -18,30 +21,53 @@ function RunPage() {
 
   const [lightboxIndex, setLightboxIndex] = createSignal<number | null>(null);
 
+  useRegisterBack(() => ({ href: "/", labelKey: "nav.backToRuns" }));
+
+  useRegisterFilters({
+    labelKey: "common.filters",
+    activeLabel: () => {
+      const f = store.filters();
+      const count =
+        f.languages.size +
+        f.layouts.size +
+        f.platforms.size +
+        f.themes.size +
+        (f.whatChangedOnly ? 1 : 0);
+      return count > 0 ? String(count) : null;
+    },
+    content: () => (
+      <Show when={store.state().manifest}>
+        {(manifest) => (
+          <div class="grid gap-4">
+            <RunGroupingSwitcher value={store.groupBy()} onChange={store.setGroupBy} />
+            <RunFilterBar
+              manifest={manifest()}
+              filters={store.filters()}
+              setFilters={store.setFilters}
+            />
+          </div>
+        )}
+      </Show>
+    ),
+  });
+
   // For the lightbox: flat list of shots across groups, in the same order
   // the user sees them rendered.
   const flatShots = createMemo(() => store.groups().flatMap((g) => g.shots));
 
   return (
-    <div class="grid gap-6">
-      <div class="flex items-center justify-between gap-3 text-sm">
-        <A href="/" class="text-muted-foreground hover:text-foreground">
-          ← All runs
-        </A>
-        <span class="font-mono text-xs text-muted-foreground">run {params.runId}</span>
-      </div>
-
+    <div class="grid gap-5">
       <Show when={!store.state().loading} fallback={<HeaderSkeleton />}>
         <Show
           when={store.state().run}
           fallback={
             <Card>
               <CardContent class="grid gap-3 py-8 text-sm">
-                <p class="text-destructive">{store.state().error ?? "Run not found."}</p>
+                <p class="text-destructive">{store.state().error ?? t("run.notFound")}</p>
                 <div>
                   <A href="/">
-                    <Button type="button" variant="outline" size="sm">
-                      Back to runs
+                    <Button type="button" variant="outline" size="sm" class="select-none">
+                      {t("nav.backToRuns")}
                     </Button>
                   </A>
                 </div>
@@ -54,42 +80,24 @@ function RunPage() {
       </Show>
 
       <Show when={store.state().manifest}>
-        {(manifest) => (
-          <div class="grid gap-4 lg:grid-cols-[20rem,1fr]">
-            <aside class="lg:sticky lg:top-20 lg:self-start">
-              <Card>
-                <CardContent class="grid gap-3 py-5">
-                  <RunGroupingSwitcher value={store.groupBy()} onChange={store.setGroupBy} />
-                  <RunFilterBar
-                    manifest={manifest()}
-                    filters={store.filters()}
-                    setFilters={store.setFilters}
-                  />
-                </CardContent>
-              </Card>
-            </aside>
-            <div>
-              <ShotGrid
-                index={store.manifestIndex()}
-                groups={store.groups()}
-                archive={store.state().archive}
-                archiveLoading={store.state().archiveLoading}
-                onIntent={store.ensureArchive}
-                onShotClick={(shot) => {
-                  const i = flatShots().findIndex((s) => s.id === shot.id);
-                  if (i >= 0) setLightboxIndex(i);
-                }}
-              />
-            </div>
-            <ShotLightbox
-              index={store.manifestIndex()}
-              archive={store.state().archive}
-              shots={flatShots()}
-              shotIndex={lightboxIndex()}
-              onChangeIndex={setLightboxIndex}
-            />
-          </div>
-        )}
+        <ShotGrid
+          index={store.manifestIndex()}
+          groups={store.groups()}
+          archive={store.state().archive}
+          archiveLoading={store.state().archiveLoading}
+          onIntent={store.ensureArchive}
+          onShotClick={(shot) => {
+            const i = flatShots().findIndex((s) => s.id === shot.id);
+            if (i >= 0) setLightboxIndex(i);
+          }}
+        />
+        <ShotLightbox
+          index={store.manifestIndex()}
+          archive={store.state().archive}
+          shots={flatShots()}
+          shotIndex={lightboxIndex()}
+          onChangeIndex={setLightboxIndex}
+        />
       </Show>
     </div>
   );

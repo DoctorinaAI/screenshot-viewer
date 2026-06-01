@@ -2,6 +2,7 @@ import { createEffect, createSignal, onCleanup, Show } from "solid-js";
 import type { Shot } from "@/features/runs/manifest-helpers";
 import type { ManifestIndex } from "@/features/runs/run-store";
 import type { ImagesArchive } from "@/shared/api/storage";
+import { useT } from "@/shared/lib/i18n";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/shared/ui/dialog";
@@ -14,10 +15,15 @@ interface Props {
   onChangeIndex: (next: number | null) => void;
 }
 
+/**
+ * Diff is driven by keys `1` (pin left) / `2` (pin right) / `3` (clear).
+ * `3` replaced `0` so the cluster sits next to the pin keys; the clickable
+ * Pin/Clear buttons make this discoverable without the keyboard. Backspace
+ * still clears as a friendly extra.
+ */
 function ShotLightbox(props: Props) {
+  const t = useT();
   const open = () => props.shotIndex !== null;
-  // Side-by-side diff state: indices into props.shots that the user pinned
-  // via the `1` and `2` keys. `null` means that pane isn't pinned yet.
   const [leftIndex, setLeftIndex] = createSignal<number | null>(null);
   const [rightIndex, setRightIndex] = createSignal<number | null>(null);
   const both = () => leftIndex() !== null && rightIndex() !== null;
@@ -49,6 +55,12 @@ function ShotLightbox(props: Props) {
     props.onChangeIndex(next);
   }
 
+  function pinLeft() {
+    if (props.shotIndex !== null) setLeftIndex(props.shotIndex);
+  }
+  function pinRight() {
+    if (props.shotIndex !== null) setRightIndex(props.shotIndex);
+  }
   function clearDiff() {
     setLeftIndex(null);
     setRightIndex(null);
@@ -57,11 +69,15 @@ function ShotLightbox(props: Props) {
   createEffect(() => {
     if (!open()) return;
     const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLElement) {
+        const tag = e.target.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA") return;
+      }
       if (e.key === "ArrowLeft") step(-1);
       else if (e.key === "ArrowRight") step(+1);
-      else if (e.key === "1" && props.shotIndex !== null) setLeftIndex(props.shotIndex);
-      else if (e.key === "2" && props.shotIndex !== null) setRightIndex(props.shotIndex);
-      else if (e.key === "0" || e.key === "Backspace") clearDiff();
+      else if (e.key === "1") pinLeft();
+      else if (e.key === "2") pinRight();
+      else if (e.key === "3" || e.key === "Backspace") clearDiff();
     };
     window.addEventListener("keydown", handler);
     onCleanup(() => window.removeEventListener("keydown", handler));
@@ -72,6 +88,9 @@ function ShotLightbox(props: Props) {
     if (!open()) clearDiff();
   });
 
+  const leftPinned = () => leftIndex() !== null && leftIndex() === props.shotIndex;
+  const rightPinned = () => rightIndex() !== null && rightIndex() === props.shotIndex;
+
   return (
     <Dialog
       open={open()}
@@ -79,12 +98,12 @@ function ShotLightbox(props: Props) {
         if (!next) props.onChangeIndex(null);
       }}
     >
-      <DialogContent class="max-w-6xl">
+      <DialogContent class="w-[min(72rem,calc(100vw-1.5rem))] max-w-none">
         <Show when={meta(current())}>
           {(m) => (
             <div class="grid gap-3">
-              <DialogTitle class="flex flex-wrap items-center gap-2 text-base">
-                <span>{m().case?.title ?? m().shot.caseId}</span>
+              <DialogTitle class="flex min-w-0 flex-wrap items-center gap-2 text-base">
+                <span class="min-w-0 truncate">{m().case?.title ?? m().shot.caseId}</span>
                 <Badge variant="secondary" class="text-[11px]">
                   {m().lang?.name ?? m().shot.languageCode}
                 </Badge>
@@ -94,14 +113,14 @@ function ShotLightbox(props: Props) {
                 <Badge variant="outline" class="text-[11px]">
                   {m().shot.platform}
                 </Badge>
-                <Show when={leftIndex() !== null && leftIndex() === props.shotIndex}>
+                <Show when={leftPinned()}>
                   <Badge variant="ok" class="text-[11px]">
-                    pinned 1
+                    1
                   </Badge>
                 </Show>
-                <Show when={rightIndex() !== null && rightIndex() === props.shotIndex}>
+                <Show when={rightPinned()}>
                   <Badge variant="warning" class="text-[11px]">
-                    pinned 2
+                    2
                   </Badge>
                 </Show>
               </DialogTitle>
@@ -112,12 +131,16 @@ function ShotLightbox(props: Props) {
                   <div class="relative grid place-items-center rounded-md bg-muted">
                     <Show
                       when={url()}
-                      fallback={<p class="py-12 text-sm text-muted-foreground">Loading image…</p>}
+                      fallback={
+                        <p class="py-12 text-sm text-muted-foreground">{t("lightbox.loading")}</p>
+                      }
                     >
                       <img
                         src={url() ?? ""}
                         alt={m().case?.title ?? m().shot.caseId}
-                        class="max-h-[70vh] w-auto object-contain"
+                        decoding="async"
+                        draggable={false}
+                        class="max-h-[70vh] w-auto select-none object-contain"
                       />
                     </Show>
                   </div>
@@ -132,46 +155,104 @@ function ShotLightbox(props: Props) {
                 />
               </Show>
 
-              <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
-                <span>
-                  {(props.shotIndex ?? 0) + 1} / {props.shots.length}
-                  <Show when={leftIndex() !== null || rightIndex() !== null}>
-                    <span class="ml-3 font-mono">
-                      diff: {leftIndex() !== null ? `#${(leftIndex() ?? 0) + 1}` : "—"} /{" "}
-                      {rightIndex() !== null ? `#${(rightIndex() ?? 0) + 1}` : "—"}
-                    </span>
-                  </Show>
-                </span>
-                <div class="flex flex-wrap gap-2">
-                  <kbd class="rounded border px-1.5 py-0.5 font-mono text-[10px]">←</kbd>
-                  <kbd class="rounded border px-1.5 py-0.5 font-mono text-[10px]">→</kbd>
-                  <span class="text-muted-foreground/70">·</span>
-                  <kbd class="rounded border px-1.5 py-0.5 font-mono text-[10px]">1</kbd>
-                  <kbd class="rounded border px-1.5 py-0.5 font-mono text-[10px]">2</kbd>
-                  <span class="text-muted-foreground/70">pin diff</span>
-                  <span class="text-muted-foreground/70">·</span>
-                  <kbd class="rounded border px-1.5 py-0.5 font-mono text-[10px]">0</kbd>
-                  <span class="text-muted-foreground/70">clear</span>
+              <div class="grid gap-3">
+                {/* Diff controls (clickable buttons mirroring the keyboard). */}
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <div class="flex flex-wrap items-center gap-1.5">
+                    <Button
+                      type="button"
+                      variant={leftPinned() ? "default" : "outline"}
+                      size="sm"
+                      class="h-8 select-none gap-1.5"
+                      onClick={pinLeft}
+                      aria-pressed={leftPinned()}
+                    >
+                      <Badge variant="ok" class="px-1.5 py-0 text-[10px]">
+                        1
+                      </Badge>
+                      <span>{t("lightbox.pin1")}</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={rightPinned() ? "default" : "outline"}
+                      size="sm"
+                      class="h-8 select-none gap-1.5"
+                      onClick={pinRight}
+                      aria-pressed={rightPinned()}
+                    >
+                      <Badge variant="warning" class="px-1.5 py-0 text-[10px]">
+                        2
+                      </Badge>
+                      <span>{t("lightbox.pin2")}</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      class="h-8 select-none gap-1.5"
+                      onClick={clearDiff}
+                      disabled={leftIndex() === null && rightIndex() === null}
+                    >
+                      <Badge variant="outline" class="px-1.5 py-0 text-[10px]">
+                        3
+                      </Badge>
+                      <span>{t("lightbox.clearDiff")}</span>
+                    </Button>
+                  </div>
+                  <div class="flex shrink-0 gap-1.5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      class="h-8 select-none"
+                      disabled={props.shotIndex === 0}
+                      onClick={() => step(-1)}
+                      aria-label={t("common.previous")}
+                    >
+                      <ChevronLeft />
+                      <span class="hidden sm:inline">{t("common.previous")}</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      class="h-8 select-none"
+                      disabled={props.shotIndex === props.shots.length - 1}
+                      onClick={() => step(+1)}
+                      aria-label={t("common.next")}
+                    >
+                      <span class="hidden sm:inline">{t("common.next")}</span>
+                      <ChevronRight />
+                    </Button>
+                  </div>
                 </div>
-                <div class="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={props.shotIndex === 0}
-                    onClick={() => step(-1)}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={props.shotIndex === props.shots.length - 1}
-                    onClick={() => step(+1)}
-                  >
-                    Next
-                  </Button>
+
+                {/* Status row + keyboard legend. */}
+                <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+                  <span class="select-none">
+                    {(props.shotIndex ?? 0) + 1} / {props.shots.length}
+                    <Show when={leftIndex() !== null || rightIndex() !== null}>
+                      <span class="ml-3 font-mono">
+                        {leftIndex() !== null ? `#${(leftIndex() ?? 0) + 1}` : "—"} /{" "}
+                        {rightIndex() !== null ? `#${(rightIndex() ?? 0) + 1}` : "—"}
+                      </span>
+                    </Show>
+                  </span>
+                  <div class="hidden flex-wrap items-center gap-1.5 md:flex">
+                    <Kbd>←</Kbd>
+                    <Kbd>→</Kbd>
+                    <span class="text-muted-foreground/70">·</span>
+                    <Kbd>1</Kbd>
+                    <Kbd>2</Kbd>
+                    <span class="select-none text-muted-foreground/70">
+                      {t("lightbox.diffHint")}
+                    </span>
+                    <span class="text-muted-foreground/70">·</span>
+                    <Kbd>3</Kbd>
+                    <span class="select-none text-muted-foreground/70">
+                      {t("lightbox.clearHint")}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -179,6 +260,50 @@ function ShotLightbox(props: Props) {
         </Show>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function Kbd(props: { children: import("solid-js").JSX.Element }) {
+  return (
+    <kbd class="select-none rounded border px-1.5 py-0.5 font-mono text-[10px]">
+      {props.children}
+    </kbd>
+  );
+}
+
+function ChevronLeft() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="h-4 w-4"
+      aria-hidden="true"
+    >
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  );
+}
+
+function ChevronRight() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="h-4 w-4"
+      aria-hidden="true"
+    >
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
   );
 }
 
@@ -220,30 +345,33 @@ interface DiffPaneProps {
 }
 
 function DiffPane(props: DiffPaneProps) {
+  const t = useT();
   const lang = () => (props.shot ? props.index?.languages.get(props.shot.languageCode) : undefined);
   const layout = () => (props.shot ? props.index?.layouts.get(props.shot.layoutId) : undefined);
 
   return (
     <figure class="grid gap-2">
-      <figcaption class="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+      <figcaption class="flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
         <Badge variant={props.badgeVariant} class="px-1.5 py-0 text-[10px]">
           {props.label}
         </Badge>
-        <Show when={props.shot} fallback={<span>Pin a shot to compare</span>}>
-          <span>{lang()?.code ?? props.shot?.languageCode}</span>
+        <Show when={props.shot} fallback={<span>{t("lightbox.pinShot")}</span>}>
+          <span class="truncate">{lang()?.code ?? props.shot?.languageCode}</span>
           <span>·</span>
-          <span>{layout()?.name ?? props.shot?.layoutId}</span>
+          <span class="truncate">{layout()?.name ?? props.shot?.layoutId}</span>
         </Show>
       </figcaption>
       <div class="grid place-items-center rounded-md bg-muted">
         <Show
           when={props.url}
-          fallback={<p class="py-12 text-xs text-muted-foreground">No image</p>}
+          fallback={<p class="py-12 text-xs text-muted-foreground">{t("lightbox.noImage")}</p>}
         >
           <img
             src={props.url ?? ""}
-            alt={`Pane ${props.label}`}
-            class="max-h-[60vh] w-auto object-contain"
+            alt={`${t("lightbox.pin1")} ${props.label}`}
+            decoding="async"
+            draggable={false}
+            class="max-h-[60vh] w-auto select-none object-contain"
           />
         </Show>
       </div>

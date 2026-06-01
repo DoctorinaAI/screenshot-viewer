@@ -4,6 +4,7 @@ import { lazy } from "solid-js";
 import { AppLayout } from "@/app/app-layout";
 import { AuthProvider } from "@/features/auth/components/auth-provider";
 import { ProtectedRoute } from "@/features/auth/components/protected-route";
+import { useT } from "@/shared/lib/i18n";
 
 const HomePage = lazy(() => import("@/pages/home"));
 const UiKitPage = lazy(() => import("@/pages/ui-kit"));
@@ -39,9 +40,10 @@ function Guard(Page: Component): Component {
 }
 
 function NotFoundPage() {
+  const t = useT();
   return (
     <div class="grid place-items-center py-24">
-      <p class="text-muted-foreground">Page not found.</p>
+      <p class="text-muted-foreground">{t("common.notFound")}</p>
     </div>
   );
 }

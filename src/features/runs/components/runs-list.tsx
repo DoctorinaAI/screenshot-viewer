@@ -1,15 +1,26 @@
 import { createEffect, For, onCleanup, Show } from "solid-js";
+import { useRegisterFilters } from "@/app/app-bar-context";
 import { RunCard } from "@/features/runs/components/run-card";
 import { RunCardSkeleton } from "@/features/runs/components/run-card-skeleton";
-import { RunsFilterBar } from "@/features/runs/components/runs-filter-bar";
+import { RunsFilterEditor, useActiveLabel } from "@/features/runs/components/runs-filter-bar";
 import { createRunsStore } from "@/features/runs/store";
+import { useT } from "@/shared/lib/i18n";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
 
-const PAGE_GRID = "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
+const PAGE_GRID =
+  "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 [grid-auto-rows:1fr]";
 
 function RunsList() {
   const store = createRunsStore();
+  const t = useT();
+  const labelFor = useActiveLabel();
+
+  useRegisterFilters({
+    labelKey: "common.filters",
+    activeLabel: () => labelFor(store.filter()),
+    content: () => <RunsFilterEditor state={store.filter()} setState={store.setFilter} />,
+  });
 
   let sentinel: HTMLDivElement | undefined;
 
@@ -39,16 +50,20 @@ function RunsList() {
 
   return (
     <section class="grid gap-4">
-      <RunsFilterBar state={store.filter()} setState={store.setFilter} />
-
       <Show when={store.state().error}>
         {(message) => (
           <Card>
             <CardContent class="grid gap-3 py-6">
-              <p class="text-sm text-destructive">Failed to load runs: {message()}</p>
+              <p class="text-sm text-destructive">{t("home.loadFail", { message: message() })}</p>
               <div>
-                <Button type="button" variant="outline" size="sm" onClick={store.refresh}>
-                  Retry
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  class="select-none"
+                  onClick={store.refresh}
+                >
+                  {t("common.retry")}
                 </Button>
               </div>
             </CardContent>
@@ -59,10 +74,19 @@ function RunsList() {
       <Show when={showEmpty()}>
         <Card>
           <CardContent class="grid gap-2 py-12 text-center">
-            <p class="text-base font-medium">No runs match this filter.</p>
-            <p class="text-sm text-muted-foreground">
-              CI uploads land here automatically. Adjust the filter or wait for the next run.
-            </p>
+            <p class="select-none text-base font-medium">{t("home.empty.title")}</p>
+            <p class="select-none text-sm text-muted-foreground">{t("home.empty.subtitle")}</p>
+            <div class="mt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                class="select-none"
+                onClick={store.refresh}
+              >
+                {t("common.refresh")}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </Show>
@@ -94,10 +118,11 @@ function RunsList() {
               type="button"
               variant="ghost"
               size="sm"
+              class="select-none"
               disabled={store.state().loading}
               onClick={store.loadMore}
             >
-              Load more
+              {t("home.loadMore")}
             </Button>
           </div>
         </div>
