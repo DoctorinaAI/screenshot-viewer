@@ -1,0 +1,56 @@
+name: Test
+
+# Runs the local quality gates: biome check, typecheck, vitest, and a fake-mode
+# Vite build. Fires automatically on every PR + push, and can also be triggered
+# manually from the Actions tab. Independent of Firebase secrets — anything that
+# touches real credentials lives in the hosting workflows.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Biome check
+        run: bun run check
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Vitest
+        run: bun run test:coverage
+
+      - name: Build (fake mode — no Firebase credentials required)
+        run: bun run build:fake
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          if-no-files-found: ignore
+          retention-days: 14

@@ -170,6 +170,28 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /*
+   * Disable text selection on interactive primitives. Buttons, keycaps, badges,
+   * radio/tab/menu items, and labels rarely benefit from being selectable and
+   * the selection highlight is visual noise during interaction (especially on
+   * mobile long-press). Plain links inside prose stay selectable.
+   */
+  button,
+  [role="button"],
+  [role="tab"],
+  [role="menuitem"],
+  [role="menuitemradio"],
+  [role="menuitemcheckbox"],
+  [role="option"],
+  [role="radio"],
+  [role="switch"],
+  kbd,
+  summary,
+  label {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
   ::selection {
     background: color-mix(in oklch, var(--primary) 25%, transparent);
     color: var(--foreground);

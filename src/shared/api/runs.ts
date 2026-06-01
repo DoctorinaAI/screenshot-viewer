@@ -22,6 +22,8 @@ import {
   type RunStatus,
   type WorkflowTrigger,
 } from "@/shared/lib/schema";
+import { USE_FAKE_BACKEND } from "./backend";
+import { fakeGetRun, fakeQueryRuns } from "./fake-runs";
 import { firestore } from "./firebase";
 
 export interface RunsFilter {
@@ -46,6 +48,7 @@ export async function queryRuns(opts: {
   pageSize?: number;
   startAfterDoc?: QueryDocumentSnapshot | null;
 }): Promise<RunsPage> {
+  if (USE_FAKE_BACKEND) return fakeQueryRuns(opts);
   const pageSize = opts.pageSize ?? DEFAULT_PAGE_SIZE;
   const constraints = filterToConstraints(opts.filters ?? {});
   constraints.push(orderBy("createdAt", "desc"));
@@ -64,6 +67,7 @@ export async function queryRuns(opts: {
 }
 
 export async function getRun(runId: string): Promise<RunDoc | null> {
+  if (USE_FAKE_BACKEND) return fakeGetRun(runId);
   const snap = await getDoc(doc(firestore(), "runs", runId));
   if (!snap.exists()) return null;
   return RunDocSchema.parse(snap.data());

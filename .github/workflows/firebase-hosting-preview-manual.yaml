@@ -1,0 +1,118 @@
+name: Preview to Firebase Hosting (manual)
+
+# Preview channels deploy in **fake mode**: Vite builds against the synthetic
+# backend (src/shared/api/fake-*.ts) so the preview URL is fully usable without
+# Google sign-in. Real Firebase auth on preview channels would fail with
+# `auth/unauthorized-domain` because Firebase Auth's authorized-domains list
+# is exact-match and the channel URL hash rotates per deploy. The orange FAKE
+# badge in the app bar makes it visually obvious that no production data is
+# involved.
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel_id:
+        description: "Firebase Hosting preview channel id (e.g. 'qa-login', 'demo-acme'). Must match ^[a-z0-9][a-z0-9-]*$."
+        required: true
+        type: string
+      ref:
+        description: "Branch, tag, or commit SHA to deploy. Defaults to the ref selected in the Run workflow UI."
+        required: false
+        type: string
+        default: ""
+      expires:
+        description: "Channel TTL (e.g. '1h', '7d', '30d'). Max 30d for preview channels."
+        required: false
+        type: string
+        default: "7d"
+
+concurrency:
+  group: firebase-hosting-preview-manual-${{ inputs.channel_id }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    # workflow_dispatch is repo-only by definition, but keep an explicit guard so a
+    # mis-targeted run (e.g. from a fork that somehow gained workflow_dispatch access)
+    # cannot consume the deploy service account.
+    if: github.repository_owner == 'DoctorinaAI'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: read
+      checks: write
+
+    steps:
+      - name: Resolve deploy ref
+        id: resolve_ref
+        run: |
+          REF="${{ inputs.ref }}"
+          if [ -z "$REF" ]; then
+            REF="${{ github.ref_name }}"
+          fi
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "Deploying ref: $REF"
+
+      - name: Validate channel_id
+        run: |
+          CH="${{ inputs.channel_id }}"
+          if ! printf '%s' "$CH" | grep -Eq '^[a-z0-9][a-z0-9-]{0,62}$'; then
+            echo "::error::channel_id '$CH' must match ^[a-z0-9][a-z0-9-]{0,62}$ (lowercase, digits, dashes; 1-63 chars)."
+            exit 1
+          fi
+          if [ "$CH" = "live" ]; then
+            echo "::error::channel_id 'live' is reserved for the production channel; use the merge workflow instead."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.resolve_ref.outputs.ref }}
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Verify gates
+        run: |
+          bun run check
+          bun run typecheck
+          bun run test
+          bun run build:fake
+
+      - id: deploy
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DOCTORINA_TEST }}
+          projectId: doctorina-test
+          channelId: ${{ inputs.channel_id }}
+          expires: ${{ inputs.expires }}
+          entryPoint: firebase
+
+      - name: Write deploy summary
+        if: always()
+        run: |
+          {
+            echo "## Firebase Hosting preview (manual)"
+            echo ""
+            echo "| field | value |"
+            echo "| --- | --- |"
+            echo "| project | doctorina-test |"
+            echo "| channel | \`${{ inputs.channel_id }}\` |"
+            echo "| ref | \`${{ steps.resolve_ref.outputs.ref }}\` |"
+            echo "| backend | **fake** (synthetic data, no Firebase auth required) |"
+            echo "| expires | ${{ inputs.expires }} |"
+            echo "| triggered by | @${{ github.actor }} |"
+            echo ""
+            URL="${{ steps.deploy.outputs.details_url }}"
+            if [ -n "$URL" ]; then
+              echo "Preview URL: $URL"
+            else
+              echo "Preview URL: (deploy step did not emit details_url — check the FirebaseExtended/action-hosting-deploy step log)"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,6 +1,7 @@
 import type { JSX } from "solid-js";
 import { For } from "solid-js";
 import type { RunFilters } from "@/features/runs/manifest-helpers";
+import { useT } from "@/shared/lib/i18n";
 import type { Manifest, Platform, Theme } from "@/shared/lib/schema";
 import { Button } from "@/shared/ui/button";
 import { Switch } from "@/shared/ui/switch";
@@ -19,13 +20,14 @@ function toggleIn<T>(set: Set<T>, value: T): Set<T> {
 }
 
 function RunFilterBar(props: Props) {
+  const t = useT();
   const update = (patch: Partial<RunFilters>) => {
     props.setFilters({ ...props.filters, ...patch });
   };
 
   return (
     <div class="grid gap-3">
-      <ChipGroup label="Language">
+      <ChipGroup label={t("run.filter.language")}>
         <For each={props.manifest.languages}>
           {(lang) => (
             <Chip
@@ -38,7 +40,7 @@ function RunFilterBar(props: Props) {
           )}
         </For>
       </ChipGroup>
-      <ChipGroup label="Layout">
+      <ChipGroup label={t("run.filter.layout")}>
         <For each={props.manifest.layouts}>
           {(layout) => (
             <Chip
@@ -50,7 +52,7 @@ function RunFilterBar(props: Props) {
           )}
         </For>
       </ChipGroup>
-      <ChipGroup label="Platform">
+      <ChipGroup label={t("run.filter.platform")}>
         <For each={uniquePlatforms(props.manifest)}>
           {(platform) => (
             <Chip
@@ -62,7 +64,7 @@ function RunFilterBar(props: Props) {
           )}
         </For>
       </ChipGroup>
-      <ChipGroup label="Theme">
+      <ChipGroup label={t("run.filter.theme")}>
         <For each={uniqueThemes(props.manifest)}>
           {(theme) => (
             <Chip
@@ -76,8 +78,8 @@ function RunFilterBar(props: Props) {
       </ChipGroup>
       <div class="flex items-center justify-between border-t pt-3">
         <Switch
-          label="What changed"
-          description="Only show (case, layout) groups with more than one unique image."
+          label={t("run.filter.whatChanged")}
+          description={t("run.filter.whatChangedDesc")}
           checked={props.filters.whatChangedOnly}
           onChange={(v) => update({ whatChangedOnly: v })}
         />
@@ -89,7 +91,7 @@ function RunFilterBar(props: Props) {
 function ChipGroup(props: { label: string; children?: JSX.Element }) {
   return (
     <div class="grid gap-1.5">
-      <div class="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+      <div class="select-none text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
         {props.label}
       </div>
       <div class="flex flex-wrap gap-1.5">{props.children}</div>
@@ -103,7 +105,7 @@ function Chip(props: { active: boolean; onClick: () => void; children?: JSX.Elem
       type="button"
       size="sm"
       variant={props.active ? "default" : "outline"}
-      class="h-7 px-2.5 text-xs"
+      class="h-7 select-none px-2.5 text-xs"
       onClick={props.onClick}
     >
       {props.children}

@@ -6,8 +6,11 @@
   "description": "TypeScript SPA for viewing Flutter integration-test screenshot artifacts. Backed by Firebase (Auth + Firestore + Storage).",
   "scripts": {
     "dev": "vite",
+    "dev:fake": "vite --mode fake",
     "build": "tsc -b && vite build",
+    "build:fake": "tsc -b && vite build --mode fake",
     "preview": "vite preview",
+    "preview:fake": "vite preview --mode fake",
     "typecheck": "tsc -b --noEmit",
     "lint": "biome lint src/",
     "format": "biome format src/",
