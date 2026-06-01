@@ -1,5 +1,13 @@
 name: Preview to Firebase Hosting (manual)
 
+# Preview channels deploy in **fake mode**: Vite builds against the synthetic
+# backend (src/shared/api/fake-*.ts) so the preview URL is fully usable without
+# Google sign-in. Real Firebase auth on preview channels would fail with
+# `auth/unauthorized-domain` because Firebase Auth's authorized-domains list
+# is exact-match and the channel URL hash rotates per deploy. The orange FAKE
+# badge in the app bar makes it visually obvious that no production data is
+# involved.
+
 on:
   workflow_dispatch:
     inputs:
@@ -34,14 +42,6 @@ jobs:
     permissions:
       contents: read
       checks: write
-
-    env:
-      VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
-      VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
-      VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
-      VITE_FIREBASE_STORAGE_BUCKET: ${{ vars.VITE_FIREBASE_STORAGE_BUCKET }}
-      VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID }}
-      VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
 
     steps:
       - name: Resolve deploy ref
@@ -82,7 +82,7 @@ jobs:
           bun run check
           bun run typecheck
           bun run test
-          bun run build
+          bun run build:fake
 
       - id: deploy
         uses: FirebaseExtended/action-hosting-deploy@v0
@@ -105,6 +105,7 @@ jobs:
             echo "| project | doctorina-test |"
             echo "| channel | \`${{ inputs.channel_id }}\` |"
             echo "| ref | \`${{ steps.resolve_ref.outputs.ref }}\` |"
+            echo "| backend | **fake** (synthetic data, no Firebase auth required) |"
             echo "| expires | ${{ inputs.expires }} |"
             echo "| triggered by | @${{ github.actor }} |"
             echo ""
