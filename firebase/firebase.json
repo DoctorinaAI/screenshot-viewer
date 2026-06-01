@@ -8,7 +8,7 @@
   },
   "hosting": {
     "site": "doctorina-test",
-    "public": "../dist",
+    "public": "dist",
     "cleanUrls": true,
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [

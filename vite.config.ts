@@ -51,6 +51,11 @@ export default defineConfig({
   build: {
     target: "esnext",
     sourcemap: false,
+    // Build into firebase/dist so the hosting deploy can find it without
+    // escaping the project directory. Modern firebase-tools rejects a
+    // `public` path that resolves outside of where firebase.json lives.
+    outDir: "firebase/dist",
+    emptyOutDir: true,
     // Firebase JS SDK alone is ~360 kB raw / ~110 kB gzipped, and that's
     // already minimal for the modules we use (app + auth + firestore +
     // storage). Bumping the warning so it stays useful for real surprises.

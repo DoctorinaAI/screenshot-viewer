@@ -83,7 +83,7 @@ gcloud firestore fields ttls update expireAt \
 
 ## Hosting
 
-- **Config**: [`firebase/firebase.json`](../firebase/firebase.json) — site `doctorina-test`, `public: "../dist"`, SPA rewrite (`** → /index.html`), `cleanUrls: true`. Hashed assets (`*.js`/`*.css`/fonts/images) get `Cache-Control: public, max-age=31536000, immutable`; `/index.html` is `no-cache` with security headers (`X-Robots-Tag: noindex`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, restrictive `Permissions-Policy`).
+- **Config**: [`firebase/firebase.json`](../firebase/firebase.json) — site `doctorina-test`, `public: "dist"` (Vite builds straight into `firebase/dist/` so the hosting deploy doesn't escape the project directory), SPA rewrite (`** → /index.html`), `cleanUrls: true`. Hashed assets (`*.js`/`*.css`/fonts/images) get `Cache-Control: public, max-age=31536000, immutable`; `/index.html`, `/sw.js`, and `/manifest.webmanifest` are `no-cache` with security headers (`X-Robots-Tag: noindex`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, restrictive `Permissions-Policy`).
 - **Live deploy**: every push to `main` → [`.github/workflows/firebase-hosting-merge.yaml`](../.github/workflows/firebase-hosting-merge.yaml) runs the full gate (`check` / `typecheck` / `test` / `build`) then `firebase deploy --only hosting` via the `FirebaseExtended/action-hosting-deploy@v0` action.
 - **PR preview**: every PR → [`.github/workflows/firebase-hosting-pull-request.yaml`](../.github/workflows/firebase-hosting-pull-request.yaml) uploads to a 7-day preview channel; the action posts the URL as a PR comment.
 
