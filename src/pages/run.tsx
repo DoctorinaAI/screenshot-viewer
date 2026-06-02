@@ -56,7 +56,7 @@ function RunPage() {
   const flatShots = createMemo(() => store.groups().flatMap((g) => g.shots));
 
   return (
-    <div class="grid gap-5">
+    <div class="grid min-w-0 grid-cols-1 gap-5">
       <Show when={!store.state().loading} fallback={<HeaderSkeleton />}>
         <Show
           when={store.state().run}

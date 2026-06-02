@@ -15,9 +15,12 @@ function Card(props: CardProps) {
     <div
       use:ripple={local.interactive || undefined}
       class={cn(
-        "rounded-lg border bg-card text-card-foreground shadow-sm",
+        // Borderless: rely on a soft elevation that lifts slightly on hover
+        // for interactive cards. Subtle ring stays only in dark mode to keep
+        // the card boundary readable against an almost-equal background.
+        "rounded-xl bg-card text-card-foreground shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06]",
         local.interactive &&
-          "cursor-pointer transition duration-150 hover:bg-accent/50 active:scale-[0.99]",
+          "cursor-pointer transition-[transform,box-shadow,background-color] duration-150 hover:bg-accent/40 hover:shadow-md active:scale-[0.99]",
         local.class,
       )}
       {...rest}

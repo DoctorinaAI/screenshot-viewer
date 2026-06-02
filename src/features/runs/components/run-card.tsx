@@ -75,7 +75,7 @@ function RunCard(props: RunCardProps) {
           <div class="flex min-w-0 flex-wrap items-center gap-1.5 text-xs">
             <For each={props.run.languages.slice(0, LANGUAGES_PREVIEW)}>
               {(lang) => (
-                <span class="rounded bg-muted px-1.5 py-0.5 font-mono uppercase text-muted-foreground">
+                <span class="select-none rounded bg-muted px-1.5 py-0.5 font-mono uppercase text-muted-foreground">
                   {lang}
                 </span>
               )}
