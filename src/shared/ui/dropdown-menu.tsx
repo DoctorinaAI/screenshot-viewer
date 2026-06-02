@@ -117,15 +117,23 @@ function DropdownMenuRadioItem(props: ComponentProps<typeof KMenu.RadioItem> & {
   );
 }
 
+/**
+ * Free-standing menu label (account header in the avatar dropdown, etc.).
+ * Kobalte's `Menu.GroupLabel` throws "useMenuGroupContext must be used within
+ * a Menu.Group" when rendered outside a group, so wrap it ourselves. Callers
+ * stay decoupled from that detail and just write `<DropdownMenuLabel>`.
+ */
 function DropdownMenuLabel(props: ParentProps<{ class?: string; inset?: boolean }>) {
   const [local, rest] = splitProps(props, ["class", "inset", "children"]);
   return (
-    <KMenu.GroupLabel
-      class={cn("px-2 py-1.5 text-sm font-semibold", local.inset && "pl-8", local.class)}
-      {...rest}
-    >
-      {local.children}
-    </KMenu.GroupLabel>
+    <KMenu.Group>
+      <KMenu.GroupLabel
+        class={cn("px-2 py-1.5 text-sm font-semibold", local.inset && "pl-8", local.class)}
+        {...rest}
+      >
+        {local.children}
+      </KMenu.GroupLabel>
+    </KMenu.Group>
   );
 }
 
