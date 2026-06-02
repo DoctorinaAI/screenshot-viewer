@@ -30,7 +30,13 @@ function AppBar() {
   const bar = useAppBar();
   return (
     <header class="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div class="mx-auto flex h-14 w-full max-w-screen-2xl items-center gap-2 px-3 sm:gap-3 sm:px-6">
+      {/*
+        `min-w-0` on the flex container plus `min-w-0` on the wrap-able
+        middle slot lets long content (commit subjects, branch chips) shrink
+        instead of pushing the right cluster off-screen when the viewport
+        is dragged from desktop down to mobile width without a full reload.
+      */}
+      <div class="mx-auto flex h-14 w-full min-w-0 max-w-screen-2xl items-center gap-2 px-3 sm:gap-3 sm:px-6">
         <BrandLink />
         <Show when={bar.back()}>
           {(back) => (
@@ -38,7 +44,7 @@ function AppBar() {
               <TooltipTrigger
                 as={A}
                 href={back().href}
-                class="inline-flex h-9 select-none items-center gap-1.5 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                class="inline-flex h-9 shrink-0 select-none items-center gap-1.5 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 aria-label={t(back().labelKey)}
               >
                 <BackIcon />
@@ -49,7 +55,10 @@ function AppBar() {
           )}
         </Show>
         <Show when={auth.user()}>
-          <nav class="ml-1 hidden gap-1 text-sm text-muted-foreground md:flex" aria-label="Primary">
+          <nav
+            class="ml-1 hidden min-w-0 gap-1 text-sm text-muted-foreground md:flex"
+            aria-label="Primary"
+          >
             <A
               href="/"
               end
@@ -67,7 +76,7 @@ function AppBar() {
             </A>
           </nav>
         </Show>
-        <div class="ml-auto flex items-center gap-1 sm:gap-2">
+        <div class="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
           <Show when={bar.filters()}>
             {(f) => (
               <Popover>
@@ -119,19 +128,21 @@ function AppBar() {
 function BrandLink() {
   const t = useT();
   return (
+    // Icon-only brand: the word-mark was pure noise in a viewer that already
+    // has the tab title + favicon. The link itself keeps an `h-9` hit area so
+    // dropping the text didn't reduce the tap target to a 10×10 dot.
     <A
       href="/"
-      class="flex select-none items-center gap-2 font-semibold tracking-tight"
+      class="inline-flex h-9 shrink-0 select-none items-center gap-2 px-1 font-semibold tracking-tight"
       aria-label={t("brand.name")}
     >
       <span aria-hidden="true" class="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-primary" />
-      <span class="hidden truncate sm:inline">{t("brand.name")}</span>
       <Show when={USE_FAKE_BACKEND}>
         <Tooltip openDelay={250}>
           <TooltipTrigger
             as={Badge}
             variant="warning"
-            class="ml-1 font-mono text-[10px] tracking-wider"
+            class="font-mono text-[10px] tracking-wider"
             title={t("brand.fakeTooltip")}
             aria-label={t("brand.fakeTooltip")}
           >

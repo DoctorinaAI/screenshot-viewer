@@ -119,7 +119,7 @@ function ShotTile(props: ShotTileProps) {
     <button
       type="button"
       onClick={props.onClick}
-      class="group relative flex aspect-[9/16] select-none overflow-hidden rounded-md border bg-muted/40 text-left ring-offset-background transition will-change-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      class="group relative flex aspect-[9/16] select-none overflow-hidden rounded-md bg-muted/40 text-left shadow-sm ring-1 ring-black/[0.04] ring-offset-background transition will-change-transform hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:ring-white/[0.06]"
       aria-label={`${props.shot.caseId} · ${props.shot.languageCode} · ${props.shot.layoutId}`}
     >
       <Show

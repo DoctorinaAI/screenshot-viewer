@@ -32,11 +32,45 @@ export default defineConfig({
         // The browser's HTTP cache (Cloud Storage already sets immutable
         // Cache-Control on these objects) gives us fast repeat reads inside
         // a session without persisting auth-restricted content past it.
-        globPatterns: ["**/*.{js,css,html,svg,ico,woff,woff2}"],
+        //
+        // *.html is deliberately NOT precached: index.html is the entry
+        // every navigation hits, and precaching it would serve a stale
+        // shell after a deploy until the next SW activation completes.
+        // The NetworkFirst handler below always tries the network for HTML
+        // so a fresh deploy lands on the very next navigation, and falls
+        // back to its own runtime cache when offline.
+        globPatterns: ["**/*.{js,css,svg,ico,woff,woff2}"],
         cleanupOutdatedCaches: true,
-        navigateFallback: "/index.html",
-        // Don't intercept Firebase Auth handler URLs.
-        navigateFallbackDenylist: [/^\/__\/auth\//],
+        // Take over open tabs immediately on activation. Combined with the
+        // NetworkFirst HTML handler this means a deploy lands on the next
+        // navigation without an explicit "update available" prompt.
+        skipWaiting: true,
+        clientsClaim: true,
+        // Explicitly disable workbox's auto-injected NavigationRoute.
+        // vite-plugin-pwa defaults `navigateFallback` to "index.html",
+        // which makes workbox-build emit
+        //   registerRoute(new NavigationRoute(createHandlerBoundToURL("index.html")))
+        // BEFORE our runtime handler. That route would (a) throw at install
+        // time because we no longer precache *.html, and (b) match every
+        // navigation first, preventing the NetworkFirst handler below from
+        // ever firing. Setting to `undefined` overrides the plugin default.
+        navigateFallback: undefined,
+        runtimeCaching: [
+          {
+            // Firebase Auth's signInWithRedirect lands on /__/auth/...
+            // The SW must not intercept that — the redirect handler
+            // expects to hit the network. Anything else that navigates
+            // (a.k.a. clicks a link / types a URL) gets NetworkFirst.
+            urlPattern: ({ request, url }) =>
+              request.mode === "navigate" && !url.pathname.startsWith("/__/auth/"),
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "app-shell",
+              networkTimeoutSeconds: 3,
+              expiration: { maxEntries: 4, maxAgeSeconds: 60 * 60 * 24 * 7 },
+            },
+          },
+        ],
       },
     }),
   ],

@@ -27,7 +27,7 @@ function RunHeader(props: RunHeaderProps) {
             <TooltipTrigger
               as={Badge}
               variant="outline"
-              class="max-w-[14rem] truncate font-mono text-[11px] uppercase tracking-wide"
+              class="max-w-[9rem] truncate font-mono text-[11px] uppercase tracking-wide sm:max-w-[14rem]"
             >
               {props.run.git.branch}
             </TooltipTrigger>

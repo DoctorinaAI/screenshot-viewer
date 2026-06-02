@@ -1,10 +1,17 @@
 // Firebase initialization. Web SDK config comes from build-time Vite env;
 // these values are public identifiers (security lives in firestore.rules and
 // storage.rules), so it's fine for them to land in the JS bundle.
+//
+// Firestore uses an explicit memory-only cache. IndexedDB persistence is a
+// foot-gun for a PWA: stale docs would survive sign-out and bleed across
+// users on a shared machine, and the IDB layer occasionally holds a write
+// lock that keeps a freshly-deployed shell stuck reading old data after
+// the service worker has already updated. Memory cache is rebuilt on every
+// page load — predictable, ACL-safe, and small enough for our workload.
 
 import { type FirebaseApp, initializeApp } from "firebase/app";
 import { type Auth, getAuth } from "firebase/auth";
-import { type Firestore, getFirestore } from "firebase/firestore";
+import { type Firestore, initializeFirestore, memoryLocalCache } from "firebase/firestore";
 import { type FirebaseStorage, getStorage } from "firebase/storage";
 
 function readConfig() {
@@ -44,7 +51,11 @@ export function firebaseAuth(): Auth {
 }
 
 export function firestore(): Firestore {
-  if (!_firestore) _firestore = getFirestore(firebaseApp());
+  if (!_firestore) {
+    _firestore = initializeFirestore(firebaseApp(), {
+      localCache: memoryLocalCache(),
+    });
+  }
   return _firestore;
 }
 

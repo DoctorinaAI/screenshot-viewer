@@ -4,6 +4,10 @@ import { splitProps } from "solid-js";
 import { cn } from "@/shared/lib/cn";
 
 const badgeVariants = cva(
+  // Note: Badge stays selectable by default. Callers select+copy branch
+  // names, PR numbers, and commit SHAs that are rendered through Badge —
+  // baking `select-none` in would silently break that. Decorative chips
+  // (e.g. language pills on run cards) opt OUT per-call via `class`.
   "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
   {
     variants: {
