@@ -1,6 +1,7 @@
 import { A, useParams } from "@solidjs/router";
 import { createMemo, createSignal, Show } from "solid-js";
 import { useRegisterBack, useRegisterFilters } from "@/app/app-bar-context";
+import { DownloadScreenshotsButton } from "@/features/runs/components/download-screenshots-button";
 import { RunFilterBar } from "@/features/runs/components/run-filter-bar";
 import { RunGroupingSwitcher } from "@/features/runs/components/run-grouping-switcher";
 import { RunHeader } from "@/features/runs/components/run-header";
@@ -80,24 +81,33 @@ function RunPage() {
       </Show>
 
       <Show when={store.state().manifest}>
-        <ShotGrid
-          index={store.manifestIndex()}
-          groups={store.groups()}
-          archive={store.state().archive}
-          archiveLoading={store.state().archiveLoading}
-          onIntent={store.ensureArchive}
-          onShotClick={(shot) => {
-            const i = flatShots().findIndex((s) => s.id === shot.id);
-            if (i >= 0) setLightboxIndex(i);
-          }}
-        />
-        <ShotLightbox
-          index={store.manifestIndex()}
-          archive={store.state().archive}
-          shots={flatShots()}
-          shotIndex={lightboxIndex()}
-          onChangeIndex={setLightboxIndex}
-        />
+        {(manifest) => (
+          <>
+            <DownloadScreenshotsButton
+              manifest={manifest()}
+              shots={store.filteredShots()}
+              ensureArchive={store.ensureArchive}
+            />
+            <ShotGrid
+              index={store.manifestIndex()}
+              groups={store.groups()}
+              archive={store.state().archive}
+              archiveLoading={store.state().archiveLoading}
+              onIntent={store.ensureArchive}
+              onShotClick={(shot) => {
+                const i = flatShots().findIndex((s) => s.id === shot.id);
+                if (i >= 0) setLightboxIndex(i);
+              }}
+            />
+            <ShotLightbox
+              index={store.manifestIndex()}
+              archive={store.state().archive}
+              shots={flatShots()}
+              shotIndex={lightboxIndex()}
+              onChangeIndex={setLightboxIndex}
+            />
+          </>
+        )}
       </Show>
     </div>
   );
