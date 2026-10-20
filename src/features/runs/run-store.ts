@@ -61,7 +61,7 @@ export interface RunStore {
   setFilters: (next: RunFilters) => void;
   groups: () => ShotGroup[];
   filteredShots: () => Shot[];
-  ensureArchive: () => void;
+  ensureArchive: () => Promise<ImagesArchive | null>;
 }
 
 const initial: RunStoreState = {
@@ -84,10 +84,9 @@ export function createRunStore(runId: () => string): RunStore {
   // Mirrors state().archive so cleanup can revoke the latest archive even if
   // it landed after the user navigated away.
   let currentArchive: ImagesArchive | null = null;
-  let archiveRequested = false;
+  let archiveRequest: Promise<ImagesArchive | null> | null = null;
 
   async function loadRun(gen: number, id: string) {
-    archiveRequested = false;
     try {
       const run = await getRun(id);
       if (gen !== generation) return;
@@ -105,39 +104,43 @@ export function createRunStore(runId: () => string): RunStore {
     }
   }
 
-  async function loadArchive(gen: number) {
+  async function loadArchive(gen: number): Promise<ImagesArchive | null> {
     const run = state().run;
     const manifest = state().manifest;
-    if (!run || !manifest) return;
-    setState((prev) => ({ ...prev, archiveLoading: true }));
+    if (!run || !manifest) return null;
+    setState((prev) => ({ ...prev, archiveLoading: true, error: null }));
     try {
       const archive = await fetchImagesArchive(run.imagesPath, manifest);
       if (gen !== generation) {
         // The user moved on while the zip was downloading. Revoke the Blob
         // URLs we just minted instead of leaking them.
         releaseImages(archive);
-        return;
+        return null;
       }
       currentArchive = archive;
       setState((prev) => ({ ...prev, archive, archiveLoading: false }));
+      return archive;
     } catch (err) {
-      if (gen !== generation) return;
+      if (gen !== generation) return null;
       const message = err instanceof Error ? err.message : String(err);
       setState((prev) => ({ ...prev, archiveLoading: false, error: message }));
+      archiveRequest = null;
+      return null;
     }
   }
 
   function ensureArchive() {
-    if (archiveRequested) return;
-    if (!state().manifest) return;
-    archiveRequested = true;
-    void loadArchive(generation);
+    if (currentArchive) return Promise.resolve(currentArchive);
+    if (!state().manifest) return Promise.resolve(null);
+    archiveRequest ??= loadArchive(generation);
+    return archiveRequest;
   }
 
   createEffect(() => {
     const id = runId();
     generation += 1;
     const gen = generation;
+    archiveRequest = null;
     if (currentArchive) {
       releaseImages(currentArchive);
       currentArchive = null;

@@ -191,10 +191,11 @@ describe("createRunStore", () => {
       dispose,
     }));
     await flush();
-    store.ensureArchive();
-    store.ensureArchive();
-    store.ensureArchive();
-    await flush();
+    const first = store.ensureArchive();
+    expect(store.ensureArchive()).toBe(first);
+    const archive = await first;
+    expect(archive).not.toBeNull();
+    expect(await store.ensureArchive()).toBe(archive);
     expect(fetchImagesArchive).toHaveBeenCalledTimes(1);
     expect(store.state().archive).not.toBeNull();
     dispose();
@@ -220,12 +221,12 @@ describe("createRunStore", () => {
       dispose,
     }));
     await flush();
-    store.ensureArchive();
+    const pending = store.ensureArchive();
     setRunId("r-2");
     await flush();
     const staleArchive = { urls: new Map<string, string>(), thumbs };
     (resolveArchive as ((a: Archive) => void) | null)?.(staleArchive);
-    await flush();
+    expect(await pending).toBeNull();
     expect(releaseImages).toHaveBeenCalledWith(staleArchive);
     dispose();
   });
@@ -247,6 +248,26 @@ describe("createRunStore", () => {
     expect(store.state().archive).not.toBeNull();
     dispose();
     expect(releaseImages).toHaveBeenCalledWith(archive);
+  });
+
+  it("can retry a failed archive download", async () => {
+    getRun.mockResolvedValueOnce(makeRun("r-1"));
+    fetchManifest.mockResolvedValueOnce(makeManifest());
+    const archive = { urls: new Map<string, string>(), thumbs: () => new Map<string, string>() };
+    fetchImagesArchive
+      .mockRejectedValueOnce(new Error("Network failed"))
+      .mockResolvedValueOnce(archive);
+    const { store, dispose } = inRoot((dispose) => ({
+      store: createRunStore(() => "r-1"),
+      dispose,
+    }));
+    await flush();
+    expect(await store.ensureArchive()).toBeNull();
+    expect(store.state().error).toBe("Network failed");
+    expect(await store.ensureArchive()).toBe(archive);
+    expect(store.state().error).toBeNull();
+    expect(fetchImagesArchive).toHaveBeenCalledTimes(2);
+    dispose();
   });
 
   it("groupBy and filters thread through createMemo without throwing", async () => {
